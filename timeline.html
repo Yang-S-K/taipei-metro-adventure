@@ -100,6 +100,16 @@
             margin-top: 10px;
             background: #eee;
         }
+        /* --- 燈箱 (Lightbox) 放大視窗樣式 --- */
+        #lightbox-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 1; transition: opacity 0.3s ease; }
+        .modal-hidden { opacity: 0 !important; pointer-events: none; }
+        #lightbox-img { max-width: 90%; max-height: 80%; border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); object-fit: contain; }
+        #lightbox-caption { color: white; margin-top: 15px; font-size: 1.2rem; font-weight: bold; text-align: center;}
+        #close-lightbox { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; font-weight: bold; }
+        
+        /* 讓照片跟印章滑過去有手指圖案表示可點擊 */
+        .clickable-img { cursor: pointer; transition: transform 0.2s ease; }
+        .clickable-img:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -115,8 +125,13 @@
     </div>
 
     <div id="timeline-container" class="timeline-container">
-        </div>
-
+    </div>
+    
+    <div id="lightbox-modal" class="modal-hidden">
+        <span id="close-lightbox">&times;</span>
+        <img id="lightbox-img" src="" alt="放大圖片">
+        <div id="lightbox-caption">標題</div>
+    </div>
     <script>
         // ⚠️ 請確認你的 API_URL
         const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
@@ -129,7 +144,22 @@
             if (url && url.includes("uc?id=")) return url.replace("uc?id=", "thumbnail?id=") + "&sz=w600";
             return url;
         };
+        // 高畫質轉換工具 (寬度 1200px)
+        const getHighResUrl = (url) => {
+            if (url && url.includes("uc?id=")) return url.replace("uc?id=", "thumbnail?id=") + "&sz=w1200";
+            return url;
+        };
 
+        // 燈箱 UI 控制
+        const lightbox = document.getElementById('lightbox-modal');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxCaption = document.getElementById('lightbox-caption');
+        lightbox.addEventListener('click', (e) => {
+            if (e.target.id === 'lightbox-modal' || e.target.id === 'close-lightbox') {
+                lightbox.classList.add('modal-hidden');
+                setTimeout(() => { lightboxImg.src = ""; }, 300);
+            }
+        });
         async function loadTimeline() {
             if (!currentUserId) {
                 document.getElementById('loading').textContent = "⚠️ 請先返回地圖頁面登入系統！";
@@ -176,7 +206,7 @@
                         <div class="timeline-dot" style="background-color: ${stationInfo.line_color};"></div>
                         <div class="timeline-content" style="position: relative; padding-right: 95px;">
                             
-                            <img src="${stampUrl}" style="position: absolute; right: 15px; top: 15px; width: 75px; height: 75px; border-radius: 50%; border: 2.5px dashed ${stationInfo.line_color}; box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover; transform: rotate(-8deg); background: white; z-index: 5;" alt="印章">
+                            <img id="stamp-${record.station_id}" class="clickable-img" src="${stampUrl}" style="position: absolute; right: 15px; top: 15px; width: 75px; height: 75px; border-radius: 50%; border: 2.5px dashed ${stationInfo.line_color}; box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover; transform: rotate(-8deg); background: white; z-index: 5;" alt="印章">
                             
                             <div class="timeline-date">🗓️ ${dateStr}</div>
                             <div class="timeline-title">
@@ -186,12 +216,24 @@
                                 </span>
                             </div>
                             <p style="font-size: 0.9rem; color: #555; margin: 0; line-height: 1.4;">${stationInfo.spots_info || "探索了這個車站！"}</p>
-                            <img class="timeline-photo" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
+                            
+                            <img id="photo-${record.station_id}" class="timeline-photo clickable-img" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
                         </div>
                     `;
                     container.appendChild(item);
-                });
 
+                    // 綁定點擊放大事件
+                    document.getElementById(`stamp-${record.station_id}`).onclick = () => {
+                        lightboxImg.src = getHighResUrl(record.stamp_url);
+                        lightboxCaption.textContent = `📍 ${stationInfo.station_name} 紀念章`;
+                        lightbox.classList.remove('modal-hidden');
+                    };
+                    document.getElementById(`photo-${record.station_id}`).onclick = () => {
+                        lightboxImg.src = getHighResUrl(record.photo_url);
+                        lightboxCaption.textContent = `📸 ${stationInfo.station_name} 實地合照`;
+                        lightbox.classList.remove('modal-hidden');
+                    };
+                });
             } catch (error) {
                 document.getElementById('loading').textContent = "❌ 讀取失敗，請檢查網路連線。";
             }

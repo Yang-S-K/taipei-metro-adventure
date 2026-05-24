@@ -11,7 +11,10 @@
         .back-btn { background: #eee; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; color: #333; }
         
         .profile-card { background: white; max-width: 600px; margin: 20px auto; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
-        .profile-avatar { width: 80px; height: 80px; background: #005edd; color: white; font-size: 2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin: 0 auto 10px auto; }
+        .profile-avatar { width: 80px; height: 80px; background: #005edd; color: white; font-size: 2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin: 0 auto 10px auto; position: relative; cursor: pointer; overflow: hidden; }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .avatar-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.45); color: white; font-size: 0.75rem; text-align: center; padding: 4px 0; opacity: 0; transition: opacity 0.2s; }
+        .profile-avatar:hover .avatar-overlay, .profile-avatar:active .avatar-overlay { opacity: 1; }
         
         .badge-cabinet { max-width: 600px; margin: 0 auto; padding: 0 20px; }
         .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 15px; }
@@ -26,6 +29,20 @@
         .badge-locked { background: #f0f0f0; color: #999; border: 2px dashed #ccc; filter: grayscale(100%); }
         .badge-locked:active { transform: scale(0.95); }
         .badge-icon { font-size: 2rem; }
+
+        /* --- 隱藏成就 --- */
+        .hidden-achievement-section { max-width: 600px; margin: 20px auto; padding: 0 20px 30px; }
+        .hidden-achievement-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .achievement-card { border-radius: 16px; padding: 18px; display: flex; align-items: center; gap: 15px; }
+        .achievement-card.locked { background: #1e1e2e; border: 2px dashed #444; }
+        .achievement-card.unlocked { background: linear-gradient(135deg, #ffd700, #ffaa00); box-shadow: 0 5px 20px rgba(255,170,0,0.35); }
+        .achievement-icon { font-size: 2.2rem; flex-shrink: 0; }
+        .achievement-title { font-weight: bold; font-size: 1rem; margin-bottom: 4px; color: #fff; }
+        .achievement-card.unlocked .achievement-title { color: #333; }
+        .achievement-desc { font-size: 0.85rem; color: #888; line-height: 1.4; }
+        .achievement-card.unlocked .achievement-desc { color: #554400; }
+        .achievement-date { font-size: 0.78rem; color: #666; margin-top: 5px; }
+        .achievement-card.unlocked .achievement-date { color: #7a5f00; font-weight: bold; }
 
         /* --- 彈出視窗 (Modal) 樣式 --- */
         #badge-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 1; transition: opacity 0.3s ease; }
@@ -48,7 +65,15 @@
     </div>
 
     <div class="profile-card">
-        <div class="profile-avatar" id="user-avatar">?</div>
+        <div style="position:relative; width:80px; margin: 0 auto 10px auto;">
+            <div class="profile-avatar" id="user-avatar" onclick="document.getElementById('avatar-input').click()">
+                <img id="avatar-img" src="" alt="頭貼" style="display:none;">
+                <span id="avatar-letter">?</span>
+                <div class="avatar-overlay">📷 更換</div>
+            </div>
+            <button id="remove-avatar-btn" onclick="removeAvatar(event)" style="display:none; position:absolute; top:-2px; right:-2px; width:22px; height:22px; border-radius:50%; background:#ff4d4f; border:2px solid white; color:white; font-size:0.9rem; cursor:pointer; z-index:10; line-height:1; padding:0;">×</button>
+        </div>
+        <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarChange(event)">
         <h2 id="user-name" style="margin: 0 0 5px 0; color: #333;">載入中...</h2>
         <p id="total-progress" style="color: #666; font-size: 0.9rem; margin: 0; margin-bottom: 15px;">探索進度計算中...</p>
         <button onclick="logout()" style="background: #ff4d4f; color: white; border: none; padding: 6px 18px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">🚪 登出系統</button>
@@ -60,6 +85,12 @@
         <h3 style="color: #333; margin-bottom: 5px;">🏅 路線制霸徽章</h3>
         <p style="color: #888; font-size: 0.85rem; margin-top: 0;">點擊徽章可查看詳細成就資訊</p>
         <div id="badge-grid" class="badge-grid"></div>
+    </div>
+
+    <div class="hidden-achievement-section">
+        <h3 style="color: #333; margin-bottom: 5px;">🔍 隱藏成就</h3>
+        <p style="color: #888; font-size: 0.85rem; margin-top: 0;">完成特殊條件即可解鎖</p>
+        <div id="hidden-achievement-grid" class="hidden-achievement-grid"></div>
     </div>
 
     <div id="badge-modal" class="modal-hidden">
@@ -81,7 +112,79 @@
 
         if (userObj) {
             document.getElementById('user-name').textContent = userObj.username;
-            document.getElementById('user-avatar').textContent = userObj.username.charAt(0); 
+            if (userObj.avatar_url) {
+                const img = document.getElementById('avatar-img');
+                img.src = userObj.avatar_url.replace("uc?id=", "thumbnail?id=") + "&sz=w200";
+                img.style.display = 'block';
+                document.getElementById('avatar-letter').style.display = 'none';
+                document.getElementById('remove-avatar-btn').style.display = 'block';
+            } else {
+                document.getElementById('avatar-letter').textContent = userObj.username.charAt(0);
+            }
+        }
+
+        const compressAndGetBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const MAX = 512;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+                    else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+            };
+            reader.onerror = reject;
+        });
+
+        async function removeAvatar(event) {
+            event.stopPropagation();
+            if (!confirm("確定要移除頭貼嗎？")) return;
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'remove_avatar', user_id: currentUserId })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const updatedUser = { ...userObj, avatar_url: '' };
+                    localStorage.setItem('metro_user', JSON.stringify(updatedUser));
+                    document.getElementById('avatar-img').style.display = 'none';
+                    document.getElementById('avatar-letter').style.display = 'block';
+                    document.getElementById('remove-avatar-btn').style.display = 'none';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function handleAvatarChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const avatarDiv = document.getElementById('user-avatar');
+            avatarDiv.style.opacity = '0.5';
+            try {
+                const base64 = await compressAndGetBase64(file);
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'update_avatar', user_id: currentUserId, avatar_base64: base64, avatar_mime: 'image/jpeg' })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const updatedUser = { ...userObj, avatar_url: result.avatar_url };
+                    localStorage.setItem('metro_user', JSON.stringify(updatedUser));
+                    const img = document.getElementById('avatar-img');
+                    img.src = result.avatar_url.replace("uc?id=", "thumbnail?id=") + "&sz=w200";
+                    img.style.display = 'block';
+                    document.getElementById('avatar-letter').style.display = 'none';
+                    document.getElementById('remove-avatar-btn').style.display = 'block';
+                }
+            } catch (e) { console.error(e); }
+            finally { avatarDiv.style.opacity = '1'; event.target.value = ''; }
         }
 
         function logout() {
@@ -103,7 +206,7 @@
             }
 
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(`${API_URL}?user_id=${encodeURIComponent(currentUserId)}`);
                 const data = await response.json();
                 
                 const stations = data.stations;
@@ -207,9 +310,72 @@
                     grid.appendChild(badge);
                 });
 
+                renderHiddenAchievements(realStations, myRecords);
+
             } catch (error) {
                 document.getElementById('loading').textContent = "❌ 讀取失敗，請檢查網路連線。";
             }
+        }
+
+        const HIDDEN_ACHIEVEMENTS = [
+            {
+                id: 'transfer_master',
+                icon: '🔀',
+                name: '轉乘大師',
+                desc: '解鎖所有雙北捷運交會站',
+                hint: '在所有路線的交叉點都留下足跡...',
+                getTargets: (stations) => stations.filter(s => s.line_name && s.line_name.includes(','))
+            },
+            {
+                id: 'endpoint_terminator',
+                icon: '🏁',
+                name: '端點終結者',
+                desc: '造訪所有捷運路線的終點站',
+                hint: '旅途的盡頭，才是真正的起點...',
+                getTargets: (stations) => stations.filter(s => String(s.is_terminal).toUpperCase() === 'TRUE')
+            }
+        ];
+
+        function renderHiddenAchievements(stations, records) {
+            const grid = document.getElementById('hidden-achievement-grid');
+
+            HIDDEN_ACHIEVEMENTS.forEach(achievement => {
+                const targets = achievement.getTargets(stations);
+                if (targets.length === 0) return;
+
+                const visitedTargets = targets.filter(s => records.some(r => r.station_id === s.station_id));
+                const unlocked = visitedTargets.length === targets.length;
+
+                let unlockDate = '';
+                if (unlocked) {
+                    const relevant = records.filter(r => targets.some(s => s.station_id === r.station_id));
+                    relevant.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    if (relevant.length) unlockDate = relevant[0].date;
+                }
+
+                const card = document.createElement('div');
+                card.className = `achievement-card ${unlocked ? 'unlocked' : 'locked'}`;
+
+                if (unlocked) {
+                    card.innerHTML = `
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div>
+                            <div class="achievement-title">【${achievement.name}】</div>
+                            <div class="achievement-desc">${achievement.desc}</div>
+                            <div class="achievement-date">🎖️ 達成時間：${unlockDate}</div>
+                        </div>`;
+                } else {
+                    card.innerHTML = `
+                        <div class="achievement-icon">🔒</div>
+                        <div>
+                            <div class="achievement-title">??? 神秘成就</div>
+                            <div class="achievement-desc">${achievement.hint}</div>
+                            <div class="achievement-date">進度：${visitedTargets.length} / ${targets.length}</div>
+                        </div>`;
+                }
+
+                grid.appendChild(card);
+            });
         }
 
         loadProfile();

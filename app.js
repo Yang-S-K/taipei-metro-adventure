@@ -179,7 +179,8 @@ function renderStationMarkers(stations) {
                             location.reload(); // 重新載入網頁，更新地圖顏色與進度
                         } else {
                             msgBox.style.color = "red";
-                            msgBox.textContent = "上傳失敗。";
+                            // 直接把 Google 後端傳回的報錯訊息印出來！
+                            msgBox.textContent = "失敗原因：" + (result.message || "未知錯誤"); 
                         }
                     } catch (e) { 
                         msgBox.textContent = "網路錯誤！";

@@ -24,7 +24,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 
 const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
 
-const LABEL_ZOOM_THRESHOLD = 14;
+const LABEL_ZOOM_THRESHOLD = 13;
 const allMarkers = [];
 const markerMap = {};
 const linePolylines = {};

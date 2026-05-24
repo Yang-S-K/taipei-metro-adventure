@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>足跡時間軸 - 雙北捷運足跡</title>
+    <title>數位集章冊 - 雙北捷運足跡</title>
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -30,108 +30,136 @@
             font-weight: bold;
             color: #333;
         }
-        
-        /* --- 時間軸主體樣式 --- */
-        .timeline-container {
-            max-width: 600px;
-            margin: 30px auto;
-            padding: 0 20px;
-            position: relative;
+        #stamp-grid {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
         }
-        /* 垂直灰線 */
-        .timeline-container::before {
-            content: '';
-            position: absolute;
-            top: 0; 
-            left: 35px; 
-            height: 100%;
-            width: 4px;
-            background: #ddd;
-            border-radius: 2px;
-        }
-        
-        /* 單一紀錄卡片區塊 */
-        .timeline-item {
-            position: relative;
-            margin-bottom: 30px;
-            padding-left: 45px;
-        }
-        /* 路線顏色圓點 */
-        .timeline-dot {
-            position: absolute;
-            left: 10px;
-            top: 5px;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #ccc;
-            border: 4px solid #f5f5f5;
-            z-index: 2;
-        }
-        /* 卡片內容 */
-        .timeline-content {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        .timeline-date {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 8px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-        }
-        .timeline-title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
+        .line-section-header {
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #eee;
+        }
+        .line-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .stamp-grid-inner {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 15px;
+        }
+        .stamp-box {
+            background: white;
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px dashed #ddd; 
+        }
+        .stamp-box.unlocked {
+            border: 2px solid; 
+        }
+        .stamp-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-bottom: 8px;
+            filter: grayscale(100%) opacity(0.3); 
+            transition: all 0.3s ease;
+        }
+        .stamp-box.unlocked .stamp-img {
+            filter: grayscale(0%) opacity(1); 
+            border-radius: 8px; 
+            cursor: pointer; /* 解鎖後游標變成手指，提示可點擊 */
+        }
+        .stamp-box.unlocked .stamp-img:hover {
+            transform: scale(1.05); /* 滑鼠游標移過去會微微放大 */
+        }
+        .station-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #888;
+        }
+        .stamp-box.unlocked .station-name {
             color: #333;
         }
-        .timeline-photo {
-            width: 100%;
-            max-height: 250px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-top: 10px;
-            background: #eee;
-        }
+
         /* --- 燈箱 (Lightbox) 放大視窗樣式 --- */
-        #lightbox-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 1; transition: opacity 0.3s ease; }
-        .modal-hidden { opacity: 0 !important; pointer-events: none; }
-        #lightbox-img { max-width: 90%; max-height: 80%; border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); object-fit: contain; }
-        #lightbox-caption { color: white; margin-top: 15px; font-size: 1.2rem; font-weight: bold; text-align: center;}
-        #close-lightbox { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; font-weight: bold; }
-        
-        /* 讓照片跟印章滑過去有手指圖案表示可點擊 */
-        .clickable-img { cursor: pointer; transition: transform 0.2s ease; }
-        .clickable-img:active { transform: scale(0.95); }
+        #lightbox-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* 半透明黑底 */
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        .modal-hidden {
+            opacity: 0 !important;
+            pointer-events: none; /* 隱藏時不可點擊 */
+        }
+        #lightbox-img {
+            max-width: 90%;
+            max-height: 80%;
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+            object-fit: contain;
+        }
+        #lightbox-caption {
+            color: white;
+            margin-top: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        #close-lightbox {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
         <button class="back-btn" onclick="location.href='index.html'">⬅ 返回地圖</button>
-        <h2 style="margin: 0; font-size: 1.2rem;">⏱️ 足跡時間軸</h2>
+        <h2 style="margin: 0; font-size: 1.2rem;">📖 數位集章冊</h2>
         <div style="width: 70px;"></div> 
     </div>
 
     <div id="loading" style="text-align: center; padding: 40px; color: #666;">
-        ⏳ 正在讀取時光機資料...
+        ⏳ 正在翻開集章冊...
     </div>
 
-    <div id="timeline-container" class="timeline-container">
-    </div>
-    
+    <div id="stamp-grid" class="stamp-grid"></div>
+
     <div id="lightbox-modal" class="modal-hidden">
         <span id="close-lightbox">&times;</span>
-        <img id="lightbox-img" src="" alt="放大圖片">
-        <div id="lightbox-caption">標題</div>
+        <img id="lightbox-img" src="" alt="放大印章">
+        <div id="lightbox-caption">車站名稱</div>
     </div>
+
     <script>
         // ⚠️ 請確認你的 API_URL
         const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
@@ -139,28 +167,32 @@
         const savedUser = localStorage.getItem("metro_user");
         const currentUserId = savedUser ? JSON.parse(savedUser).user_id : null;
 
-        // 縮圖轉換工具
+        // 產生縮圖的函數 (寬度 400px，載入快)
         const getThumbnailUrl = (url) => {
-            if (url && url.includes("uc?id=")) return url.replace("uc?id=", "thumbnail?id=") + "&sz=w600";
+            if (url && url.includes("uc?id=")) return url.replace("uc?id=", "thumbnail?id=") + "&sz=w400";
             return url;
         };
-        // 高畫質轉換工具 (寬度 1200px)
+
+        // 產生高畫質大圖的函數 (寬度 1200px，放大看細節)
         const getHighResUrl = (url) => {
             if (url && url.includes("uc?id=")) return url.replace("uc?id=", "thumbnail?id=") + "&sz=w1200";
             return url;
         };
 
-        // 燈箱 UI 控制
+        // 燈箱 UI 綁定
         const lightbox = document.getElementById('lightbox-modal');
         const lightboxImg = document.getElementById('lightbox-img');
         const lightboxCaption = document.getElementById('lightbox-caption');
+        
+        // 點擊背景或叉叉關閉燈箱
         lightbox.addEventListener('click', (e) => {
             if (e.target.id === 'lightbox-modal' || e.target.id === 'close-lightbox') {
                 lightbox.classList.add('modal-hidden');
-                setTimeout(() => { lightboxImg.src = ""; }, 300);
+                setTimeout(() => { lightboxImg.src = ""; }, 300); // 關閉後清空圖片來源
             }
         });
-        async function loadTimeline() {
+
+        async function loadStamps() {
             if (!currentUserId) {
                 document.getElementById('loading').textContent = "⚠️ 請先返回地圖頁面登入系統！";
                 return;
@@ -169,83 +201,76 @@
             try {
                 const response = await fetch(`${API_URL}?user_id=${encodeURIComponent(currentUserId)}`);
                 const data = await response.json();
-                
+
                 const stations = data.stations;
                 const progress = data.progress || [];
-                const container = document.getElementById('timeline-container');
-                
+                const container = document.getElementById('stamp-grid');
+
                 document.getElementById('loading').style.display = 'none';
 
-                // 1. 篩選出該使用者的打卡紀錄
-                let myRecords = progress.filter(p => p.user_id === currentUserId);
-                
-                // 2. 如果沒有紀錄
-                if (myRecords.length === 0) {
-                    container.innerHTML = `<div style="text-align: center; color: #888; margin-top: 40px;">還沒有足跡喔！趕快出發去探索吧！</div>`;
-                    return;
-                }
-
-                // 3. 依照日期排序 (由新到舊：最新解鎖的在最上面)
-                myRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                // 4. 生成時間軸 HTML
-                myRecords.forEach(record => {
-                    // 找出對應的車站資料，以取得站名和顏色
-                    const stationInfo = stations.find(s => s.station_id === record.station_id);
-                    if (!stationInfo) return;
-
-                    // 處理日期格式 (避免顯示太多 00:00:00)
-                    const dateStr = record.date.split('T')[0]; 
-                    const photoUrl = getThumbnailUrl(record.photo_url);
-                    const stampUrl = getThumbnailUrl(record.stamp_url); 
-
-                    const lineNames = stationInfo.line_name.split(',');
-                    const lineColors = stationInfo.line_color.split(',');
-                    const firstColor = lineColors[0].trim();
-                    const lineBadgesHtml = lineNames.map((name, i) => {
-                        const color = lineColors[i] ? lineColors[i].trim() : firstColor;
-                        return `<span class="badge" style="background-color: ${color}; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; color: white; font-weight: normal;">${name.trim()}</span>`;
-                    }).join(' ');
-
-                    const item = document.createElement('div');
-                    item.className = 'timeline-item';
-
-                    item.innerHTML = `
-                        <div class="timeline-dot" style="background-color: ${firstColor};"></div>
-                        <div class="timeline-content" style="position: relative; padding-right: 95px;">
-
-                            <img id="stamp-${record.station_id}" class="clickable-img" src="${stampUrl}" style="position: absolute; right: 15px; top: 15px; width: 75px; height: 75px; border-radius: 50%; border: 2.5px dashed ${firstColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover; transform: rotate(-8deg); background: white; z-index: 5;" alt="印章">
-
-                            <div class="timeline-date">🗓️ ${dateStr}</div>
-                            <div class="timeline-title">
-                                ${stationInfo.station_name}
-                                ${lineBadgesHtml}
-                            </div>
-                            <p style="font-size: 0.9rem; color: #555; margin: 0; line-height: 1.4;">${stationInfo.spots_info || "探索了這個車站！"}</p>
-
-                            <img id="photo-${record.station_id}" class="timeline-photo clickable-img" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
-                        </div>
-                    `;
-                    container.appendChild(item);
-
-                    // 綁定點擊放大事件
-                    document.getElementById(`stamp-${record.station_id}`).onclick = () => {
-                        lightboxImg.src = getHighResUrl(record.stamp_url);
-                        lightboxCaption.textContent = `📍 ${stationInfo.station_name} 紀念章`;
-                        lightbox.classList.remove('modal-hidden');
-                    };
-                    document.getElementById(`photo-${record.station_id}`).onclick = () => {
-                        lightboxImg.src = getHighResUrl(record.photo_url);
-                        lightboxCaption.textContent = `📸 ${stationInfo.station_name} 實地合照`;
-                        lightbox.classList.remove('modal-hidden');
-                    };
+                // 按路線分組，共構站（逗號分隔）會同時出現在各自所屬路線
+                const lineMap = {};
+                stations.forEach(station => {
+                    if (station.station_id.includes('_hidden')) return;
+                    const lines = station.line_name.split(',');
+                    const colors = station.line_color.split(',');
+                    lines.forEach((line, i) => {
+                        const lineName = line.trim();
+                        const lineColor = colors[i] ? colors[i].trim() : colors[0].trim();
+                        if (!lineMap[lineName]) lineMap[lineName] = { color: lineColor, stations: [] };
+                        lineMap[lineName].stations.push(station);
+                    });
                 });
+
+                Object.keys(lineMap).forEach(lineName => {
+                    const { color, stations: lineStations } = lineMap[lineName];
+
+                    // 路線標題列
+                    const header = document.createElement('div');
+                    header.className = 'line-section-header';
+                    header.innerHTML = `<span class="line-dot" style="background-color: ${color};"></span>${lineName}`;
+                    container.appendChild(header);
+
+                    // 該路線的印章格
+                    const grid = document.createElement('div');
+                    grid.className = 'stamp-grid-inner';
+
+                    lineStations.forEach(station => {
+                        const userProg = progress.find(p => p.station_id === station.station_id && p.user_id === currentUserId);
+                        const isUnlocked = !!userProg;
+
+                        const box = document.createElement('div');
+                        box.className = `stamp-box ${isUnlocked ? 'unlocked' : ''}`;
+                        if (isUnlocked) box.style.borderColor = color;
+
+                        const thumbUrl = isUnlocked ? getThumbnailUrl(userProg.stamp_url) : "https://via.placeholder.com/150/CCCCCC/666666?text=Locked";
+
+                        box.innerHTML = `
+                            <img class="stamp-img" src="${thumbUrl}" alt="${station.station_name}印章">
+                            <span class="station-name">${station.station_name}</span>
+                        `;
+
+                        if (isUnlocked) {
+                            box.querySelector('.stamp-img').addEventListener('click', () => {
+                                lightboxImg.src = getHighResUrl(userProg.stamp_url);
+                                lightboxCaption.textContent = `📍 ${station.station_name} 紀念章`;
+                                lightboxCaption.style.color = color;
+                                lightbox.classList.remove('modal-hidden');
+                            });
+                        }
+
+                        grid.appendChild(box);
+                    });
+
+                    container.appendChild(grid);
+                });
+
             } catch (error) {
                 document.getElementById('loading').textContent = "❌ 讀取失敗，請檢查網路連線。";
             }
         }
 
-        loadTimeline();
+        loadStamps();
     </script>
 </body>
 </html>

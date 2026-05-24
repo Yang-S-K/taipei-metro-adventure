@@ -3,17 +3,22 @@ const savedUser = localStorage.getItem("metro_user");
 const userObj = savedUser ? JSON.parse(savedUser) : null;
 const currentUserId = userObj ? userObj.user_id : null;
 
+// 🚊 動態判斷登入狀態與按鈕跳轉邏輯
+const loginBtn = document.getElementById('login-status-btn');
+
 if (userObj) {
-    const loginBtn = document.getElementById('login-status-btn');
-    loginBtn.textContent = `👋 Hi, ${userObj.username}`;
+    // 【情況 A：已登入】顯示用戶名，點擊直接進入個人主頁
+    loginBtn.textContent = `👋 ${userObj.username}`;
     loginBtn.onclick = () => {
-        if(confirm("確定要登出嗎？")) {
-            localStorage.clear();
-            location.reload();
-        }
+        location.href = 'profile.html';
+    };
+} else {
+    // 【情況 B：未登入】顯示登入，點擊導向登入驗證畫面
+    loginBtn.textContent = `🔑 登入`;
+    loginBtn.onclick = () => {
+        location.href = 'login.html';
     };
 }
-
 const map = L.map('map', { zoomControl: false }).setView([25.0462, 121.5174], 12);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }).addTo(map);
 
@@ -123,8 +128,18 @@ function renderStationMarkers(stations) {
             document.getElementById('card-line').textContent = station.line_name;
             document.getElementById('card-line').style.backgroundColor = station.line_color;
             document.getElementById('card-spots').textContent = station.spots_info || "尚未規劃景點";
-            document.getElementById('stamp-img').src = station.stamp_img_url || "https://via.placeholder.com/150/CCCCCC/666666?text=No+Stamp";
-            document.getElementById('photo-img').src = station.photo_img_url || "https://via.placeholder.com/150/CCCCCC/666666?text=No+Photo";
+            // 轉換 Google Drive 圖片網址的魔法函數
+            const fixDriveImage = (url) => {
+                if (url && url.includes("uc?id=")) {
+                    // 換成 thumbnail 縮圖 API，並限制寬度為 800px 以加快載入速度
+                    return url.replace("uc?id=", "thumbnail?id=") + "&sz=w800";
+                }
+                return url;
+            };
+
+            // 套用轉換
+            document.getElementById('stamp-img').src = fixDriveImage(station.stamp_img_url) || "https://via.placeholder.com/150/CCCCCC/666666?text=No+Stamp";
+            document.getElementById('photo-img').src = fixDriveImage(station.photo_img_url) || "https://via.placeholder.com/150/CCCCCC/666666?text=No+Photo";
             
             // 處理打卡表單顯示邏輯
             const checkinForm = document.getElementById('checkin-form');
@@ -179,8 +194,7 @@ function renderStationMarkers(stations) {
                             location.reload(); // 重新載入網頁，更新地圖顏色與進度
                         } else {
                             msgBox.style.color = "red";
-                            // 直接把 Google 後端傳回的報錯訊息印出來！
-                            msgBox.textContent = "失敗原因：" + (result.message || "未知錯誤"); 
+                            msgBox.textContent = "上傳失敗。";
                         }
                     } catch (e) { 
                         msgBox.textContent = "網路錯誤！";
@@ -198,5 +212,14 @@ function renderStationMarkers(stations) {
         });
     });
 }
-
+// 註冊 Service Worker 啟動 PWA 功能
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            console.log('PWA Service Worker 註冊成功！', reg.scope);
+        }).catch(err => {
+            console.log('PWA 註冊失敗：', err);
+        });
+    });
+}
 initMetroAdventure();

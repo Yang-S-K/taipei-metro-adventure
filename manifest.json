@@ -1,0 +1,20 @@
+{
+  "name": "雙北捷運足跡",
+  "short_name": "捷運足跡",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#e30022",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/e30022/FFFFFF?text=Metro",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/e30022/FFFFFF?text=Metro",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

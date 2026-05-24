@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人主頁 - 雙北捷運足跡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            padding-bottom: 40px;
+        }
+        .header {
+            background: #fff;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn {
+            background: #eee;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* 個人資訊區塊 */
+        .profile-card {
+            background: white;
+            max-width: 600px;
+            margin: 20px auto;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: #005edd;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto 10px auto;
+        }
+
+        /* 徽章展示櫃 */
+        .badge-cabinet {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .badge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        /* 徽章本體與 Tooltip 懸浮提示設定 */
+        .badge-item {
+            position: relative;
+            padding: 15px 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 隱藏的懸浮提示框 (Tooltip) */
+        .badge-item::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            font-size: 0.8rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 10;
+        }
+        
+        /* 游標滑過去時顯示 Tooltip */
+        .badge-item:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* 解鎖狀態的樣式 */
+        .badge-unlocked {
+            color: white;
+            border: 3px solid #ffd700;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        .badge-unlocked:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        /* 未解鎖狀態的樣式 */
+        .badge-locked {
+            background: #f0f0f0;
+            color: #999;
+            border: 2px dashed #ccc;
+            filter: grayscale(100%);
+        }
+        .badge-locked:hover {
+            background: #e8e8e8;
+            filter: grayscale(80%);
+        }
+        
+        .badge-icon {
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="back-btn" onclick="location.href='index.html'">⬅ 返回地圖</button>
+        <h2 style="margin: 0; font-size: 1.2rem;">🧑‍🚀 個人主頁</h2>
+        <div style="width: 70px;"></div> 
+    </div>
+
+    <div class="profile-card">
+        <div class="profile-avatar" id="user-avatar">?</div>
+        <h2 id="user-name" style="margin: 0 0 5px 0; color: #333;">載入中...</h2>
+        <p id="total-progress" style="color: #666; font-size: 0.9rem; margin: 0; margin-bottom: 15px;">探索進度計算中...</p>
+        
+        <button onclick="logout()" style="background: #ff4d4f; color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 0.8rem;">
+            🚪 登出系統
+        </button>
+    </div>
+
+    <div id="loading" style="text-align: center; padding: 20px; color: #666;">⏳ 正在整理徽章展示櫃...</div>
+
+    <div class="badge-cabinet">
+        <h3 style="color: #333; margin-bottom: 5px;">🏅 路線制霸徽章</h3>
+        <p style="color: #888; font-size: 0.85rem; margin-top: 0;">游標滑過徽章可查看解鎖進度</p>
+        <div id="badge-grid" class="badge-grid">
+            </div>
+    </div>
+
+    <script>
+        // ⚠️ 請確認你的 API_URL
+        const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
+        
+        const savedUser = localStorage.getItem("metro_user");
+        const userObj = savedUser ? JSON.parse(savedUser) : null;
+        const currentUserId = userObj ? userObj.user_id : null;
+
+        if (userObj) {
+            document.getElementById('user-name').textContent = userObj.username;
+            document.getElementById('user-avatar').textContent = userObj.username.charAt(0); // 取名字第一個字當頭貼
+        }
+
+        async function loadProfile() {
+            if (!currentUserId) {
+                document.getElementById('loading').textContent = "⚠️ 請先返回地圖頁面登入系統！";
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                const stations = data.stations;
+                const progress = data.progress || [];
+                const grid = document.getElementById('badge-grid');
+                
+                document.getElementById('loading').style.display = 'none';
+
+                // 計算全圖總進度
+                const myRecords = progress.filter(p => p.user_id === currentUserId);
+                const totalStations = stations.length;
+                const visitedCount = myRecords.length;
+                document.getElementById('total-progress').textContent = `總計已探索 ${visitedCount} / ${totalStations} 個車站`;
+
+                // 1. 統計每條路線的進度
+                const routeStats = {};
+                stations.forEach(station => {
+                    if (!station.line_name) return;
+                    if (!routeStats[station.line_name]) {
+                        routeStats[station.line_name] = { total: 0, visited: 0, color: station.line_color || "#888" };
+                    }
+                    routeStats[station.line_name].total++;
+                    
+                    // 檢查該站是否有在打卡紀錄中
+                    if (myRecords.some(p => p.station_id === station.station_id)) {
+                        routeStats[station.line_name].visited++;
+                    }
+                });
+
+                // 2. 渲染徽章
+                Object.keys(routeStats).forEach(lineName => {
+                    const stats = routeStats[lineName];
+                    const isCompleted = stats.visited === stats.total && stats.total > 0;
+                    const percent = Math.round((stats.visited / stats.total) * 100);
+                    const remaining = stats.total - stats.visited;
+                    
+                    const badge = document.createElement('div');
+                    
+                    if (isCompleted) {
+                        // 解鎖狀態
+                        badge.className = 'badge-item badge-unlocked';
+                        badge.style.backgroundColor = stats.color;
+                        badge.setAttribute('data-tooltip', `🎉 達成成就！${lineName} 100% 制霸`);
+                        badge.innerHTML = `
+                            <div class="badge-icon">🏆</div>
+                            <div>${lineName}</div>
+                        `;
+                    } else {
+                        // 未解鎖狀態
+                        badge.className = 'badge-item badge-locked';
+                        badge.setAttribute('data-tooltip', `距離解鎖還差 ${remaining} 站 (目前進度 ${percent}%)`);
+                        badge.innerHTML = `
+                            <div class="badge-icon" style="color: ${stats.color};">🔒</div>
+                            <div>${lineName}</div>
+                            <div style="font-weight: normal; font-size: 0.8rem;">${stats.visited} / ${stats.total}</div>
+                        `;
+                    }
+                    
+                    grid.appendChild(badge);
+                });
+
+            } catch (error) {
+                document.getElementById('loading').textContent = "❌ 讀取失敗，請檢查網路連線。";
+            }
+        }
+        function logout() {
+            if(confirm("確定要登出並清除所有紀錄嗎？")) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
+        }
+        loadProfile();
+    </script>
+</body>
+</html>

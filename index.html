@@ -10,6 +10,7 @@
     <meta name="theme-color" content="#e30022">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/e30022/FFFFFF?text=Metro">
     <style>
+        body { overflow: hidden; height: 100vh; }
         /* 臨時補上進度條與選單的樣式 */
         #top-bar {
             position: absolute;
@@ -54,21 +55,111 @@
         }
         /* 🔧 修正 Leaflet 標籤重疊與阻擋點擊的問題 */
         .station-label {
-            background-color: rgba(255, 255, 255, 0.85) !important; /* 微微半透明，透出底下的線條 */
+            background-color: rgba(255, 255, 255, 0.85) !important;
             border: 1px solid rgba(0,0,0,0.1) !important;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
             font-weight: bold;
             color: #333;
             font-size: 0.8rem;
-            pointer-events: none !important; /* 🌟 終極魔法：讓游標/手指直接「穿透」文字框，精準點到圓點 */
+            pointer-events: none !important;
         }
+        /* 座標工具 */
+        #coord-display {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 5px 10px;
+            border-radius: 8px;
+            z-index: 1000;
+            pointer-events: none;
+            font-family: monospace;
+            display: none;
+        }
+        #coord-copied {
+            position: absolute;
+            bottom: 40px;
+            right: 10px;
+            background: #005edd;
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 5px 12px;
+            border-radius: 8px;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        /* 搜尋框 */
+        #search-box {
+            margin-top: 10px;
+            position: relative;
+        }
+        #search-input {
+            width: 100%;
+            padding: 8px 14px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+        #search-input:focus { border-color: #005edd; }
+        #search-results {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+            text-align: left;
+        }
+        .search-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: #f5f5f5; }
+        /* 路線篩選 */
+        #filter-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .filter-btn {
+            flex-shrink: 0;
+            border: none;
+            border-radius: 14px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+            color: white;
+        }
+        .filter-btn:active { transform: scale(0.95); }
+        .filter-btn-all { background: #333; }
+        .filter-btn.inactive { opacity: 0.3; }
     </style>
 </head>
 <body>
     <div id="app-container">
         <div id="top-bar">
             <div id="progress-text">捷運制霸進度: 0 / 0 (0%)</div>
-                <div id="progress-bar">
+                <div id="progress-bar" class="progress-container">
                     <div id="progress-fill"></div>
                 </div>
             <div class="nav-buttons">
@@ -76,9 +167,18 @@
                 <button class="nav-btn" onclick="location.href='stamps.html'">📖 集章冊</button>
                 <button class="nav-btn" onclick="location.href='timeline.html'">⏱️ 時間軸</button>
             </div>
+            <div id="search-box">
+                <input type="text" id="search-input" placeholder="🔍 搜尋車站..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+            <div id="filter-box">
+                <button id="filter-all-btn" class="filter-btn filter-btn-all">全部</button>
+            </div>
         </div>
 
         <div id="map"></div>
+        <div id="coord-display">📍 lat, lng</div>
+        <div id="coord-copied">已複製！</div>
 
         <div id="station-card" class="card-hidden">
             <button id="close-btn">×</button>
@@ -100,8 +200,6 @@
                     </div>
                 </div>
             </div>
-            <div class="gallery">...</div>
-                
                 <div id="checkin-form" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
                     <h3 style="font-size: 1rem; margin-bottom: 10px;">✅ 實地打卡解鎖</h3>
                     <div style="margin-bottom: 8px;">

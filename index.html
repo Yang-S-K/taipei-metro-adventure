@@ -6,6 +6,9 @@
     <title>雙北捷運足跡冒險</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e30022">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/e30022/FFFFFF?text=Metro">
     <style>
         /* 臨時補上進度條與選單的樣式 */
         #top-bar {
@@ -54,14 +57,14 @@
 <body>
     <div id="app-container">
         <div id="top-bar">
-            <h3 id="progress-text">捷運制霸進度: 0 / 0</h3>
-            <div class="progress-container">
-                <div id="progress-fill"></div>
-            </div>
-<div class="nav-buttons">
-                <button class="nav-btn">📖 集章冊</button>
-                <button class="nav-btn">⏱️ 時間軸</button>
-                <button class="nav-btn" id="login-status-btn" onclick="location.href='login.html'">🔑 登入</button>
+            <div id="progress-text">捷運制霸進度: 0 / 0 (0%)</div>
+                <div id="progress-bar">
+                    <div id="progress-fill"></div>
+                </div>
+            <div class="nav-buttons">
+                <button class="nav-btn" id="login-status-btn">🔑 登入</button>
+                <button class="nav-btn" onclick="location.href='stamps.html'">📖 集章冊</button>
+                <button class="nav-btn" onclick="location.href='timeline.html'">⏱️ 時間軸</button>
             </div>
         </div>
 

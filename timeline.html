@@ -167,7 +167,7 @@
             }
 
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(`${API_URL}?user_id=${encodeURIComponent(currentUserId)}`);
                 const data = await response.json();
                 
                 const stations = data.stations;
@@ -199,24 +199,30 @@
                     const photoUrl = getThumbnailUrl(record.photo_url);
                     const stampUrl = getThumbnailUrl(record.stamp_url); 
 
+                    const lineNames = stationInfo.line_name.split(',');
+                    const lineColors = stationInfo.line_color.split(',');
+                    const firstColor = lineColors[0].trim();
+                    const lineBadgesHtml = lineNames.map((name, i) => {
+                        const color = lineColors[i] ? lineColors[i].trim() : firstColor;
+                        return `<span class="badge" style="background-color: ${color}; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; color: white; font-weight: normal;">${name.trim()}</span>`;
+                    }).join(' ');
+
                     const item = document.createElement('div');
                     item.className = 'timeline-item';
-                    
+
                     item.innerHTML = `
-                        <div class="timeline-dot" style="background-color: ${stationInfo.line_color};"></div>
+                        <div class="timeline-dot" style="background-color: ${firstColor};"></div>
                         <div class="timeline-content" style="position: relative; padding-right: 95px;">
-                            
-                            <img id="stamp-${record.station_id}" class="clickable-img" src="${stampUrl}" style="position: absolute; right: 15px; top: 15px; width: 75px; height: 75px; border-radius: 50%; border: 2.5px dashed ${stationInfo.line_color}; box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover; transform: rotate(-8deg); background: white; z-index: 5;" alt="印章">
-                            
+
+                            <img id="stamp-${record.station_id}" class="clickable-img" src="${stampUrl}" style="position: absolute; right: 15px; top: 15px; width: 75px; height: 75px; border-radius: 50%; border: 2.5px dashed ${firstColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover; transform: rotate(-8deg); background: white; z-index: 5;" alt="印章">
+
                             <div class="timeline-date">🗓️ ${dateStr}</div>
                             <div class="timeline-title">
                                 ${stationInfo.station_name}
-                                <span class="badge" style="background-color: ${stationInfo.line_color}; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; color: white; font-weight: normal;">
-                                    ${stationInfo.line_name}
-                                </span>
+                                ${lineBadgesHtml}
                             </div>
                             <p style="font-size: 0.9rem; color: #555; margin: 0; line-height: 1.4;">${stationInfo.spots_info || "探索了這個車站！"}</p>
-                            
+
                             <img id="photo-${record.station_id}" class="timeline-photo clickable-img" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
                         </div>
                     `;

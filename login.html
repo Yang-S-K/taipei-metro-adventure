@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - 雙北捷運足跡冒險</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #e5e3df;
+        }
+        .login-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+        }
+        .login-card h2 { margin-bottom: 20px; color: #333; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 0.9rem; color: #666; margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        .login-btn {
+            width: 100%; padding: 10px; background: #005edd; color: white;
+            border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold;
+        }
+        .login-btn:hover { background: #0047a8; }
+        #msg { color: #e30022; margin-top: 10px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>🚊 系統登入</h2>
+        <div class="input-group">
+            <label>帳號 (User ID)</label>
+            <input type="text" id="userid" placeholder="輸入帳號" required>
+        </div>
+        <div class="input-group">
+            <label>密碼 (Password)</label>
+            <input type="password" id="password" placeholder="輸入密碼" required>
+        </div>
+        <button class="login-btn" onclick="handleLogin()">登入系統</button>
+        <p id="msg"></p>
+        <br>
+        <a href="index.html" style="font-size: 0.85rem; color: #666; text-decoration: none;">返回地圖</a>
+    </div>
+
+    <script>
+        // ⚠️ 請替換成你剛剛測試成功的那串 API 網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
+
+        async function handleLogin() {
+            const userid = document.getElementById('userid').value;
+            const password = document.getElementById('password').value;
+            const msgObj = document.getElementById('msg');
+
+            if (!userid || !password) {
+                msgObj.textContent = "請輸入帳號與密碼！";
+                return;
+            }
+
+            msgObj.textContent = "驗證中，請稍候...";
+            msgObj.style.color = "#666";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'login',
+                        user_id: userid,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    msgObj.style.color = "green";
+                    msgObj.textContent = "登入成功！跳轉中...";
+                    
+                    // 將使用者資訊與 Token 存入瀏覽器快取
+                    localStorage.setItem("metro_user", JSON.stringify(result.user));
+                    localStorage.setItem("metro_token", result.token);
+
+                    // 跳轉回主畫面
+                    setTimeout(() => { window.location.href = "index.html"; }, 1000);
+                } else {
+                    msgObj.style.color = "#e30022";
+                    msgObj.textContent = result.message;
+                }
+            } catch (error) {
+                msgObj.style.color = "#e30022";
+                msgObj.textContent = "連線失敗，請檢查網路狀態。";
+            }
+        }
+    </script>
+</body>
+</html>

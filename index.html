@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雙北捷運足跡冒險</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 臨時補上進度條與選單的樣式 */
+        #top-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+            text-align: center;
+        }
+        .progress-container {
+            width: 100%;
+            background: #eee;
+            border-radius: 10px;
+            height: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        #progress-fill {
+            height: 100%;
+            background: #005edd;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        .nav-btn {
+            padding: 5px 15px;
+            border: none;
+            border-radius: 20px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div id="top-bar">
+            <h3 id="progress-text">捷運制霸進度: 0 / 0</h3>
+            <div class="progress-container">
+                <div id="progress-fill"></div>
+            </div>
+<div class="nav-buttons">
+                <button class="nav-btn">📖 集章冊</button>
+                <button class="nav-btn">⏱️ 時間軸</button>
+                <button class="nav-btn" id="login-status-btn" onclick="location.href='login.html'">🔑 登入</button>
+            </div>
+        </div>
+
+        <div id="map"></div>
+
+        <div id="station-card" class="card-hidden">
+            <button id="close-btn">×</button>
+            <h2 id="card-title">車站名稱</h2>
+            <span id="card-line" class="badge">路線</span>
+
+            <div class="card-content">
+                <h3>📍 推薦景點</h3>
+                <p id="card-spots">景點介紹...</p>
+                
+                <div class="gallery">
+                    <div class="img-box">
+                        <h4>📝 紀念章</h4>
+                        <img id="stamp-img" src="" alt="紀念章">
+                    </div>
+                    <div class="img-box">
+                        <h4>📸 合照</h4>
+                        <img id="photo-img" src="" alt="合照">
+                    </div>
+                </div>
+            </div>
+            <div class="gallery">...</div>
+                
+                <div id="checkin-form" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                    <h3 style="font-size: 1rem; margin-bottom: 10px;">✅ 實地打卡解鎖</h3>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 0.8rem; color: #666; display:block;">📝 上傳紀念章</label>
+                        <input type="file" id="upload-stamp" accept="image/*" style="font-size: 0.8rem;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.8rem; color: #666; display:block;">📸 上傳合照</label>
+                        <input type="file" id="upload-photo" accept="image/*" style="font-size: 0.8rem;">
+                    </div>
+                    <button id="submit-checkin-btn" class="nav-btn" style="width: 100%; background: #005edd; color: white;">送出解鎖</button>
+                    <p id="upload-msg" style="font-size: 0.85rem; text-align: center; margin-top: 8px;"></p>
+                </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

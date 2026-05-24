@@ -36,59 +36,80 @@
 </head>
 <body>
     <div class="login-card">
-        <h2>🚊 系統登入</h2>
+        <h2 id="form-title">🚊 系統登入</h2>
         <div class="input-group">
-            <label>帳號 (User ID)</label>
-            <input type="text" id="userid" placeholder="輸入帳號" required>
+            <label>帳號 ID</label>
+            <input type="text" id="userid" placeholder="輸入帳號">
+        </div>
+        <div class="input-group" id="username-group" style="display:none;">
+            <label>顯示名稱</label>
+            <input type="text" id="username" placeholder="輸入顯示名稱">
         </div>
         <div class="input-group">
-            <label>密碼 (Password)</label>
-            <input type="password" id="password" placeholder="輸入密碼" required>
+            <label>密碼</label>
+            <input type="password" id="password" placeholder="輸入密碼">
         </div>
-        <button class="login-btn" onclick="handleLogin()">登入系統</button>
+        <div class="input-group" id="confirm-group" style="display:none;">
+            <label>確認密碼</label>
+            <input type="password" id="confirm-password" placeholder="再次輸入密碼">
+        </div>
+        <button class="login-btn" id="submit-btn" onclick="handleSubmit()">登入系統</button>
         <p id="msg"></p>
+        <div style="margin-top: 12px; font-size: 0.85rem; color: #666;">
+            <span id="toggle-text">還沒有帳號？</span>
+            <a href="#" id="toggle-link" onclick="toggleMode(); return false;" style="color: #005edd; text-decoration: none; font-weight: bold;">立即註冊</a>
+        </div>
         <br>
         <a href="index.html" style="font-size: 0.85rem; color: #666; text-decoration: none;">返回地圖</a>
     </div>
 
     <script>
-        // ⚠️ 請替換成你剛剛測試成功的那串 API 網址
         const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
 
+        let isRegisterMode = false;
+
+        function toggleMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('form-title').textContent = isRegisterMode ? '🚊 創建帳號' : '🚊 系統登入';
+            document.getElementById('username-group').style.display = isRegisterMode ? 'block' : 'none';
+            document.getElementById('confirm-group').style.display = isRegisterMode ? 'block' : 'none';
+            document.getElementById('submit-btn').textContent = isRegisterMode ? '創建帳號' : '登入系統';
+            document.getElementById('toggle-text').textContent = isRegisterMode ? '已有帳號？' : '還沒有帳號？';
+            document.getElementById('toggle-link').textContent = isRegisterMode ? '返回登入' : '立即註冊';
+            document.getElementById('msg').textContent = '';
+        }
+
+        function handleSubmit() {
+            isRegisterMode ? handleRegister() : handleLogin();
+        }
+
         async function handleLogin() {
-            const userid = document.getElementById('userid').value;
+            const userid = document.getElementById('userid').value.trim();
             const password = document.getElementById('password').value;
             const msgObj = document.getElementById('msg');
 
             if (!userid || !password) {
+                msgObj.style.color = "#e30022";
                 msgObj.textContent = "請輸入帳號與密碼！";
                 return;
             }
 
-            msgObj.textContent = "驗證中，請稍候...";
             msgObj.style.color = "#666";
+            msgObj.textContent = "驗證中，請稍候...";
+            document.getElementById('submit-btn').disabled = true;
 
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        action: 'login',
-                        user_id: userid,
-                        password: password
-                    })
+                    body: JSON.stringify({ action: 'login', user_id: userid, password: password })
                 });
-
                 const result = await response.json();
 
                 if (result.success) {
                     msgObj.style.color = "green";
                     msgObj.textContent = "登入成功！跳轉中...";
-                    
-                    // 將使用者資訊與 Token 存入瀏覽器快取
                     localStorage.setItem("metro_user", JSON.stringify(result.user));
                     localStorage.setItem("metro_token", result.token);
-
-                    // 跳轉回主畫面
                     setTimeout(() => { window.location.href = "index.html"; }, 1000);
                 } else {
                     msgObj.style.color = "#e30022";
@@ -97,6 +118,55 @@
             } catch (error) {
                 msgObj.style.color = "#e30022";
                 msgObj.textContent = "連線失敗，請檢查網路狀態。";
+            } finally {
+                document.getElementById('submit-btn').disabled = false;
+            }
+        }
+
+        async function handleRegister() {
+            const userid = document.getElementById('userid').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            const msgObj = document.getElementById('msg');
+
+            if (!userid || !username || !password) {
+                msgObj.style.color = "#e30022";
+                msgObj.textContent = "請填寫所有欄位！";
+                return;
+            }
+            if (password !== confirm) {
+                msgObj.style.color = "#e30022";
+                msgObj.textContent = "兩次密碼不一致！";
+                return;
+            }
+
+            msgObj.style.color = "#666";
+            msgObj.textContent = "創建中，請稍候...";
+            document.getElementById('submit-btn').disabled = true;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'register', user_id: userid, username: username, password: password })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    msgObj.style.color = "green";
+                    msgObj.textContent = "帳號創建成功！請登入。";
+                    toggleMode();
+                    document.getElementById('userid').value = userid;
+                    document.getElementById('password').value = '';
+                } else {
+                    msgObj.style.color = "#e30022";
+                    msgObj.textContent = result.message || "創建失敗，請再試一次。";
+                }
+            } catch (error) {
+                msgObj.style.color = "#e30022";
+                msgObj.textContent = "連線失敗，請檢查網路狀態。";
+            } finally {
+                document.getElementById('submit-btn').disabled = false;
             }
         }
     </script>

@@ -96,9 +96,13 @@ async function initMetroAdventure() {
 }
 
 function updateProgress(stations) {
-    const total = stations.length;
-    const visited = stations.filter(s => s.is_visited).length;
+    // 過濾掉隱藏替身節點，避免分母膨脹
+    const realStations = stations.filter(s => !s.station_id.includes('_hidden'));
+    
+    const total = realStations.length;
+    const visited = realStations.filter(s => s.is_visited).length;
     const percentage = total > 0 ? Math.round((visited / total) * 100) : 0;
+    
     document.getElementById('progress-text').textContent = `捷運制霸進度: ${visited} / ${total} (${percentage}%)`;
     document.getElementById('progress-fill').style.width = `${percentage}%`;
 }
@@ -107,26 +111,63 @@ function drawDynamicLines(stations) {
     const lines = {};
     stations.forEach(station => {
         if (!station.lat || !station.lng) return;
-        if (!lines[station.line_name]) lines[station.line_name] = { color: station.line_color || "#888", coords: [] };
-        lines[station.line_name].coords.push([parseFloat(station.lat), parseFloat(station.lng)]);
+        
+        // 處理共構站 (line_name 包含逗號)
+        const pathGroups = station.path_group ? station.path_group.split(',') : (station.line_name ? station.line_name.split(',') : []);
+        const lineColors = station.line_color ? station.line_color.split(',') : [];
+
+        pathGroups.forEach((pathKey, index) => {
+             const key = pathKey.trim();
+             if(!key) return;
+
+             if (!lines[key]) {
+                // 如果沒有對應的顏色，就用灰色
+                const color = lineColors[index] ? lineColors[index].trim() : (lineColors[0] ? lineColors[0].trim() : "#888");
+                lines[key] = { color: color, coords: [] };
+            }
+            lines[key].coords.push([parseFloat(station.lat), parseFloat(station.lng)]);
+        });
     });
-    Object.keys(lines).forEach(lineName => {
-        if (lines[lineName].coords.length >= 2) L.polyline(lines[lineName].coords, { color: lines[lineName].color, weight: 5, opacity: 0.6 }).addTo(map);
+
+    Object.keys(lines).forEach(pathKey => {
+        if (lines[pathKey].coords.length >= 2) {
+            L.polyline(lines[pathKey].coords, { 
+                color: lines[pathKey].color, 
+                weight: 5, 
+                opacity: 0.6 
+            }).addTo(map);
+        }
     });
 }
 
 function renderStationMarkers(stations) {
     stations.forEach(station => {
         if (!station.lat || !station.lng) return;
+        if (station.station_id.includes('_hidden')) return;
         const markerColor = station.is_visited ? station.line_color : '#888888';
         const marker = L.circleMarker([parseFloat(station.lat), parseFloat(station.lng)], { radius: 8, fillColor: markerColor, color: '#ffffff', weight: 2, fillOpacity: 1 }).addTo(map);
         
-        marker.bindTooltip(station.station_name, { permanent: true, direction: 'right', className: 'station-label', offset: [10, 0] }).openTooltip();
-
+        marker.bindTooltip(station.station_name, { permanent: true, direction: 'top', className: 'station-label', offset: [0, -10] }).openTooltip();
+        
         marker.on('click', () => {
+            // 1. 設定車站標題
             document.getElementById('card-title').textContent = station.station_name;
-            document.getElementById('card-line').textContent = station.line_name;
-            document.getElementById('card-line').style.backgroundColor = station.line_color;
+            
+            // 2. 處理多線共構/單線的標籤切分邏輯
+            const lines = station.line_name.split(',');  // 用逗號切開路線，例如 ["淡水信義線", "中和新蘆線"]
+            const colors = station.line_color.split(',');// 用逗號切開顏色，例如 ["#e30022", "#f8b61c"]
+            let lineHtml = '';
+            
+            // 依序幫每一條路線產生一個漂亮的彩色膠囊標籤
+            lines.forEach((line, index) => {
+                const color = colors[index] ? colors[index].trim() : '#888';
+                lineHtml += `<span class="badge" style="background-color: ${color}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;">${line.trim()}</span>`;
+            });
+            
+            // 3. 把產生好的所有標籤一次塞進剛剛在 html 挖好的 div 裡
+            document.getElementById('card-line').innerHTML = lineHtml; 
+            
+            // 4. 設定景點文字
             document.getElementById('card-spots').textContent = station.spots_info || "尚未規劃景點";
             // 轉換 Google Drive 圖片網址的魔法函數
             const fixDriveImage = (url) => {

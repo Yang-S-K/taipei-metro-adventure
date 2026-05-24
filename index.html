@@ -52,6 +52,16 @@
             cursor: pointer;
             font-weight: bold;
         }
+        /* 🔧 修正 Leaflet 標籤重疊與阻擋點擊的問題 */
+        .station-label {
+            background-color: rgba(255, 255, 255, 0.85) !important; /* 微微半透明，透出底下的線條 */
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+            font-weight: bold;
+            color: #333;
+            font-size: 0.8rem;
+            pointer-events: none !important; /* 🌟 終極魔法：讓游標/手指直接「穿透」文字框，精準點到圓點 */
+        }
     </style>
 </head>
 <body>
@@ -73,7 +83,7 @@
         <div id="station-card" class="card-hidden">
             <button id="close-btn">×</button>
             <h2 id="card-title">車站名稱</h2>
-            <span id="card-line" class="badge">路線</span>
+            <div id="card-line" style="margin-bottom: 10px;"></div>
 
             <div class="card-content">
                 <h3>📍 推薦景點</h3>

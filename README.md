@@ -210,6 +210,7 @@ station.spot_photo_urls  = userProg.spot_photo_urls?.split(',').filter(u => u.tr
 - `#supplement-area`：補傳按鈕區，已解鎖時顯示
 - `#photo-lightbox`：主地圖專屬燈箱
 - `#coord-display` / `#coord-copied`：座標工具，只有 `user_id === 'admin'` 啟用（純地圖點擊複製座標用）
+- `#theme-btn`：地圖主題切換按鈕，循環切換三種圖磚（標準🌤 / 深色🌙 / 簡約🗺），偏好存 `localStorage.metro_theme`
 
 ### 打卡表單
 
@@ -279,6 +280,9 @@ POST 必須用 `Content-Type: text/plain;charset=utf-8`。doPost 最底部有 fa
 ### 7. GAS 重新部署授權問題
 加新的 DriveApp 呼叫後若執行環境不認授權：撤銷 myaccount.google.com/permissions → 執行 `forceAuth()` → 建新版本部署。
 
+### 9. 防重複打卡（Code.gs）
+`checkin` action 開頭先掃 User_Progress 全表，若找到同一 user_id + station_id 的記錄，直接回傳 `{ success: true, already_checked_in: true, stamp_url, photo_url, note }` 並跳過 uploadToDrive / appendRow，避免資料庫產生重複列。
+
 ### 8. permissions 嚴格驗證
 前端只認 `spots`/`users`/`checkins` 三個值。舊的 `TRUE`/`FALSE` 格式不被識別為有效權限。Users 表 E 欄必須是逗號分隔的權限字串或空白。
 
@@ -325,6 +329,15 @@ POST 必須用 `Content-Type: text/plain;charset=utf-8`。doPost 最底部有 fa
 ### Timeline 加景點照 ✅（已完成）
 - 每筆記錄底部顯示「▼ 更多照片（N 張）」按鈕（有 extra/spot 才顯示）
 - 展開後 3 欄網格，點擊開燈箱標示合照/景點照
+- 純前端，無 GAS 異動
+
+---
+
+### 地圖主題切換 ✅（已完成）
+- `#theme-btn` 在 nav-buttons 列最右，點擊循環切換三種 CartoDB 圖磚
+- 順序：🌤 標準（Voyager）→ 🌙 深色（Dark Matter）→ 🗺 簡約（Light All）→ 循環
+- 選擇存入 `localStorage.metro_theme`（下次開啟自動套用）
+- `applyTheme(idx)` 函式：removeLayer 舊圖磚 → addTo 新圖磚 → 更新按鈕 icon
 - 純前端，無 GAS 異動
 
 ---

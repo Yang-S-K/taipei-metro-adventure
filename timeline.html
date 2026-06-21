@@ -110,6 +110,11 @@
         /* 讓照片跟印章滑過去有手指圖案表示可點擊 */
         .clickable-img { cursor: pointer; transition: transform 0.2s ease; }
         .clickable-img:active { transform: scale(0.95); }
+        /* 更多照片展開區 */
+        .tl-more-btn { font-size: 0.8rem; color: #005edd; background: none; border: none; cursor: pointer; padding: 10px 0 4px; display: block; font-weight: bold; }
+        .tl-photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 6px; }
+        .tl-photo-item { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: #eee; cursor: pointer; transition: transform 0.15s; }
+        .tl-photo-item:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -210,7 +215,17 @@
                     const item = document.createElement('div');
                     item.className = 'timeline-item';
 
+                    const extraUrls = record.extra_photo_urls ? record.extra_photo_urls.split(',').filter(u => u.trim()) : [];
+                    const spotUrls  = record.spot_photo_urls  ? record.spot_photo_urls.split(',').filter(u => u.trim())  : [];
+                    const allMore   = [...extraUrls, ...spotUrls];
+
                     const noteText = (record.note || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const moreGridHtml = allMore.length > 0 ? `
+                        <button class="tl-more-btn">▼ 更多照片（${allMore.length} 張）</button>
+                        <div class="tl-photo-grid hidden">
+                            ${allMore.map(url => `<img src="${getThumbnailUrl(url)}" data-hi="${getHighResUrl(url)}" class="tl-photo-item">`).join('')}
+                        </div>` : '';
+
                     item.innerHTML = `
                         <div class="timeline-dot" style="background-color: ${firstColor};"></div>
                         <div class="timeline-content" style="position: relative; padding-right: 95px;">
@@ -225,6 +240,7 @@
                             ${noteText ? `<p style="font-size:0.85rem;color:#555;margin:4px 0 0;line-height:1.5;white-space:pre-wrap;">💬 ${noteText}</p>` : ''}
 
                             <img id="photo-${record.station_id}" class="timeline-photo clickable-img" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
+                            ${moreGridHtml}
                         </div>
                     `;
                     container.appendChild(item);
@@ -240,6 +256,25 @@
                         lightboxCaption.textContent = `📸 ${stationInfo.station_name} 實地合照`;
                         lightbox.classList.remove('modal-hidden');
                     };
+
+                    // 展開更多照片
+                    if (allMore.length > 0) {
+                        const moreBtn  = item.querySelector('.tl-more-btn');
+                        const moreGrid = item.querySelector('.tl-photo-grid');
+                        moreBtn.addEventListener('click', () => {
+                            const opening = moreGrid.classList.toggle('hidden') === false;
+                            moreBtn.textContent = opening ? `▲ 收起` : `▼ 更多照片（${allMore.length} 張）`;
+                        });
+                        item.querySelectorAll('.tl-photo-item').forEach((img, i) => {
+                            img.addEventListener('click', () => {
+                                lightboxImg.src = img.dataset.hi;
+                                lightboxCaption.textContent = i < extraUrls.length
+                                    ? `📸 ${stationInfo.station_name} 合照`
+                                    : `🌟 ${stationInfo.station_name} 景點照`;
+                                lightbox.classList.remove('modal-hidden');
+                            });
+                        });
+                    }
                 });
             } catch (error) {
                 document.getElementById('loading').textContent = "❌ 讀取失敗，請檢查網路連線。";

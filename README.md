@@ -322,14 +322,10 @@ POST 必須用 `Content-Type: text/plain;charset=utf-8`。doPost 最底部有 fa
 
 ---
 
-### Timeline 加景點照
-**目標**：timeline 每筆記錄可展開看 extra_photo_urls 和 spot_photo_urls，目前只顯示主要合照。
-
-**前端異動（只改 timeline.html）**：
-- 每筆記錄底部加「▼ 更多照片（N 張）」按鈕（有 extra 或 spot 才顯示）
-- 展開後網格顯示：其他合照（extra_photo_urls）+ 景點照（spot_photo_urls）
-- 圖片點擊開燈箱（已有燈箱 `#lightbox-modal`，直接複用）
-- 無 GAS 改動
+### Timeline 加景點照 ✅（已完成）
+- 每筆記錄底部顯示「▼ 更多照片（N 張）」按鈕（有 extra/spot 才顯示）
+- 展開後 3 欄網格，點擊開燈箱標示合照/景點照
+- 純前端，無 GAS 異動
 
 ---
 

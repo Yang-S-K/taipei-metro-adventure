@@ -22,25 +22,26 @@ if (userObj) {
 const map = L.map('map', { zoomControl: false }).setView([25.0462, 121.5174], 12);
 
 const TILE_THEMES = [
-  { icon: '🌤', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '&copy; CARTO' },
-  { icon: '🌙', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',            attr: '&copy; CARTO' },
-  { icon: '🗺',  url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',           attr: '&copy; CARTO' },
-  { icon: '🛰',  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '&copy; Esri' },
-  { icon: '🌍', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                       attr: '&copy; OpenStreetMap' },
-  { icon: '⛰',  url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                         attr: '&copy; OpenTopoMap' },
+  { icon: '🌤', name: '標準',  url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '&copy; CARTO' },
+  { icon: '🌙', name: '深色',  url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',            attr: '&copy; CARTO' },
+  { icon: '🗺',  name: '簡約',  url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',           attr: '&copy; CARTO' },
+  { icon: '🛰',  name: '衛星',  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '&copy; Esri' },
+  { icon: '🌍', name: 'OSM',   url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                       attr: '&copy; OpenStreetMap' },
+  { icon: '⛰',  name: '地形',  url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                         attr: '&copy; OpenTopoMap' },
 ];
 let currentTileLayer;
 let currentThemeIdx = parseInt(localStorage.getItem('metro_theme') || '0');
 
-function applyTheme(idx) {
+function applyTheme(idx, silent) {
   if (currentTileLayer) map.removeLayer(currentTileLayer);
   const t = TILE_THEMES[idx];
   currentTileLayer = L.tileLayer(t.url, { attribution: t.attr }).addTo(map);
   document.getElementById('theme-btn').textContent = t.icon;
   localStorage.setItem('metro_theme', String(idx));
   currentThemeIdx = idx;
+  if (!silent) showTileToast(t.icon + ' ' + t.name);
 }
-applyTheme(currentThemeIdx);
+applyTheme(currentThemeIdx, true);
 
 // Dark mode init
 if (localStorage.getItem('metro_dark') === '1') {
@@ -54,9 +55,59 @@ function toggleDark() {
   document.getElementById('dark-btn').textContent = isDark ? '☀️' : '🌙';
 }
 
+function showTileToast(text) {
+  const el = document.getElementById('tile-toast');
+  el.textContent = text;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+
+function showTilePicker() {
+  const picker = document.getElementById('tile-picker');
+  const btn = document.getElementById('theme-btn');
+  const rect = btn.getBoundingClientRect();
+  picker.innerHTML = TILE_THEMES.map((t, i) =>
+    `<div class="tile-pick-item${i === currentThemeIdx ? ' tile-active' : ''}" data-idx="${i}">${t.icon} ${t.name}</div>`
+  ).join('');
+  picker.querySelectorAll('.tile-pick-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      applyTheme(parseInt(item.dataset.idx));
+      picker.style.display = 'none';
+    });
+  });
+  picker.style.visibility = 'hidden';
+  picker.style.display = 'block';
+  const pw = picker.offsetWidth;
+  let left = rect.left + rect.width / 2 - pw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  picker.style.left = left + 'px';
+  picker.style.top = (rect.bottom + 8) + 'px';
+  picker.style.visibility = 'visible';
+}
+
 document.getElementById('dark-btn').addEventListener('click', toggleDark);
-document.getElementById('theme-btn').addEventListener('click', () => {
+
+// Theme button: short press = cycle, long press / right-click = picker
+const themeBtn = document.getElementById('theme-btn');
+let lpTimer, lpFired = false;
+themeBtn.addEventListener('touchstart', () => {
+  lpFired = false;
+  lpTimer = setTimeout(() => { lpFired = true; showTilePicker(); }, 450);
+}, { passive: true });
+themeBtn.addEventListener('touchend',  () => clearTimeout(lpTimer));
+themeBtn.addEventListener('touchmove', () => clearTimeout(lpTimer));
+themeBtn.addEventListener('contextmenu', (e) => { e.preventDefault(); showTilePicker(); });
+themeBtn.addEventListener('click', () => {
+  if (lpFired) { lpFired = false; return; }
   applyTheme((currentThemeIdx + 1) % TILE_THEMES.length);
+});
+document.addEventListener('click', (e) => {
+  const p = document.getElementById('tile-picker');
+  if (p.style.display !== 'none' && !p.contains(e.target) && e.target !== themeBtn) {
+    p.style.display = 'none';
+  }
 });
 
 const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";

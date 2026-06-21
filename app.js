@@ -22,22 +22,39 @@ if (userObj) {
 const map = L.map('map', { zoomControl: false }).setView([25.0462, 121.5174], 12);
 
 const TILE_THEMES = [
-  { icon: '🌤', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' },
-  { icon: '🌙', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
-  { icon: '🗺', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
+  { icon: '🌤', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '&copy; CARTO' },
+  { icon: '🌙', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',            attr: '&copy; CARTO' },
+  { icon: '🗺',  url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',           attr: '&copy; CARTO' },
+  { icon: '🛰',  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '&copy; Esri' },
+  { icon: '🌍', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                       attr: '&copy; OpenStreetMap' },
+  { icon: '⛰',  url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                         attr: '&copy; OpenTopoMap' },
 ];
 let currentTileLayer;
 let currentThemeIdx = parseInt(localStorage.getItem('metro_theme') || '0');
 
 function applyTheme(idx) {
   if (currentTileLayer) map.removeLayer(currentTileLayer);
-  currentTileLayer = L.tileLayer(TILE_THEMES[idx].url, { attribution: '&copy; CARTO' }).addTo(map);
-  document.getElementById('theme-btn').textContent = TILE_THEMES[idx].icon;
+  const t = TILE_THEMES[idx];
+  currentTileLayer = L.tileLayer(t.url, { attribution: t.attr }).addTo(map);
+  document.getElementById('theme-btn').textContent = t.icon;
   localStorage.setItem('metro_theme', String(idx));
   currentThemeIdx = idx;
 }
 applyTheme(currentThemeIdx);
 
+// Dark mode init
+if (localStorage.getItem('metro_dark') === '1') {
+  document.body.classList.add('dark');
+  document.getElementById('dark-btn').textContent = '☀️';
+}
+
+function toggleDark() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('metro_dark', isDark ? '1' : '0');
+  document.getElementById('dark-btn').textContent = isDark ? '☀️' : '🌙';
+}
+
+document.getElementById('dark-btn').addEventListener('click', toggleDark);
 document.getElementById('theme-btn').addEventListener('click', () => {
   applyTheme((currentThemeIdx + 1) % TILE_THEMES.length);
 });

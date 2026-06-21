@@ -3,7 +3,7 @@
 // 快取版本號：更新 HTML/CSS/JS 後請同步升級 STATIC_VER，舊快取會自動清除
 // =====================================================================
 
-const STATIC_VER = 'v2';
+const STATIC_VER = 'v3';
 
 const STATIC_CACHE = `metro-static-${STATIC_VER}`;
 const CDN_CACHE    = 'metro-cdn-v1';

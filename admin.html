@@ -115,12 +115,58 @@
         .photo-item-label { font-size: 0.62rem; color: #888; margin-top: 2px; }
         .photo-del-btn { position: absolute; top: 2px; right: 2px; background: rgba(255,77,79,0.9); border: none; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.68rem; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
         .no-photos-msg { font-size: 0.82rem; color: #bbb; width: 100%; }
+
+        /* ── 深色模式 (admin.html) ── */
+        body.dark { background: #16161f !important; }
+        /* admin header 本身已深色，只需還原 back-btn 樣式被 global 規則覆蓋的部分 */
+        body.dark .admin-header .back-btn { background: rgba(255,255,255,0.15) !important; color: white !important; }
+        body.dark .stat-card { background: #22223a !important; color: #e0e0ee !important; }
+        body.dark .stat-card .stat-num { color: #6699ff !important; }
+        body.dark .stat-card .stat-label { color: #9999bb !important; }
+        body.dark .stat-section { background: #22223a !important; }
+        body.dark .stat-section h4 { color: #e0e0ee !important; }
+        body.dark .rank-item { border-color: #33334d !important; }
+        body.dark .rank-name { color: #e0e0ee !important; }
+        body.dark .rank-count { color: #6699ff !important; }
+        body.dark .recent-item { border-color: #33334d !important; }
+        body.dark .recent-main { color: #e0e0ee !important; }
+        body.dark .recent-sub { color: #9999bb !important; }
+        body.dark .search-input { background: #2a2a3d !important; color: #e0e0ee !important; border-color: #44445a !important; }
+        body.dark .station-list-item { background: #22223a !important; color: #e0e0ee !important; }
+        body.dark .station-list-item:hover { background: #2a2a3d !important; }
+        body.dark .station-list-name { color: #e0e0ee !important; }
+        body.dark .station-list-line { color: #9999bb !important; }
+        body.dark .spots-count-badge { background: #2a2a3d !important; color: #6699ff !important; }
+        body.dark .spots-count-badge.empty { background: #2a2a3d !important; color: #555 !important; }
+        body.dark .edit-header { background: #22223a !important; }
+        body.dark .edit-header h3 { color: #e0e0ee !important; }
+        body.dark .edit-header p { color: #9999bb !important; }
+        body.dark .spot-row { background: #22223a !important; }
+        body.dark .spot-field label { color: #9999bb !important; }
+        body.dark .spot-field input,
+        body.dark .spot-field select { background: #2a2a3d !important; color: #e0e0ee !important; border-color: #44445a !important; }
+        body.dark #add-spot-row-btn { border-color: #44445a !important; color: #9999bb !important; }
+        body.dark .save-bar { background: #16161f !important; }
+        body.dark .user-card { background: #22223a !important; }
+        body.dark .user-name { color: #e0e0ee !important; }
+        body.dark .user-stats { color: #9999bb !important; }
+        body.dark .perm-row { border-color: #33334d !important; }
+        body.dark .perm-chip { border-color: #44445a !important; color: #9999bb !important; }
+        body.dark .expand-btn { background: #2a2a3d !important; color: #e0e0ee !important; }
+        body.dark .checkin-card { background: #22223a !important; }
+        body.dark .checkin-user { color: #e0e0ee !important; }
+        body.dark .checkin-meta { color: #9999bb !important; }
+        body.dark .user-filter-btn { background: #2a2a3d !important; color: #9999bb !important; }
+        body.dark .user-filter-btn.active { background: #005edd !important; color: white !important; }
+        body.dark .no-photos-msg { color: #555 !important; }
+        body.dark .photo-item-label { color: #9999bb !important; }
     </style>
 </head>
 <body>
     <div class="admin-header">
         <button class="back-btn" id="header-back-btn">⬅ 返回</button>
         <h2>⚙️ 管理後台</h2>
+        <button class="back-btn" id="dark-btn" onclick="toggleDark()" style="padding:6px 12px;font-size:1rem;flex-shrink:0;">🌙</button>
     </div>
     <div id="tab-bar">
         <button class="tab-btn active" data-tab="overview">📊 總覽</button>
@@ -162,6 +208,16 @@
     </div>
 
     <script>
+        if (localStorage.getItem('metro_dark') === '1') {
+            document.body.classList.add('dark');
+            document.getElementById('dark-btn').textContent = '☀️';
+        }
+        function toggleDark() {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('metro_dark', isDark ? '1' : '0');
+            document.getElementById('dark-btn').textContent = isDark ? '☀️' : '🌙';
+        }
+
         const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
 
         const savedUser     = localStorage.getItem('metro_user');

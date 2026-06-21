@@ -104,6 +104,15 @@
         #lightbox-img { max-width: 90%; max-height: 80%; border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); object-fit: contain; }
         #lightbox-caption { color: white; margin-top: 15px; font-size: 1.1rem; font-weight: bold; text-align: center; }
         #close-lightbox { position: absolute; top: 20px; right: 28px; color: white; font-size: 40px; cursor: pointer; font-weight: bold; line-height: 1; }
+
+        /* ── 深色模式 (stamps.html) ── */
+        body.dark { background: #16161f !important; }
+        body.dark .header-title { color: #e0e0ee !important; }
+        body.dark .shelf-subtitle { color: #6666aa !important; }
+        body.dark .stamp-box.unlocked { background: #22223a !important; box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; }
+        body.dark .stamp-box.locked { background: rgba(255,255,255,0.04) !important; }
+        body.dark .stamp-box.unlocked .stamp-name { color: #e0e0ee !important; }
+        body.dark .stamp-box.locked .stamp-name { color: #444 !important; }
     </style>
 </head>
 <body>
@@ -112,7 +121,7 @@
     <div class="page-header" id="shelf-header">
         <button class="header-back" onclick="location.href='index.html'">⬅ 返回地圖</button>
         <h2 class="header-title">📖 集章冊</h2>
-        <div style="width:70px;"></div>
+        <button class="header-back" id="dark-btn" onclick="toggleDark()" style="padding:8px 12px;font-size:1rem;">🌙</button>
     </div>
 
     <!-- 詳細頁 header（彩色，切換路線時動態填色） -->
@@ -149,6 +158,16 @@
     </div>
 
     <script>
+        if (localStorage.getItem('metro_dark') === '1') {
+            document.body.classList.add('dark');
+            document.getElementById('dark-btn').textContent = '☀️';
+        }
+        function toggleDark() {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('metro_dark', isDark ? '1' : '0');
+            document.getElementById('dark-btn').textContent = isDark ? '☀️' : '🌙';
+        }
+
         const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
 
         const savedUser    = localStorage.getItem("metro_user");

@@ -54,6 +54,30 @@
         #modal-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: #333; }
         #modal-desc { font-size: 0.95rem; color: #666; margin-bottom: 15px; line-height: 1.5; }
         #modal-date { display: inline-block; background: #fff3cd; color: #856404; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+
+        /* ── 深色模式 (profile.html) ── */
+        body.dark { background-color: #16161f !important; }
+        body.dark .header h2 { color: #e0e0ee !important; }
+        body.dark #loading { color: #9999bb !important; }
+        body.dark .profile-card { background: #22223a !important; box-shadow: 0 4px 15px rgba(0,0,0,0.35) !important; }
+        body.dark #user-name { color: #e0e0ee !important; }
+        body.dark #total-progress { color: #9999bb !important; }
+        body.dark #edit-profile-btn { background: #2a2a3d !important; color: #e0e0ee !important; }
+        body.dark #edit-profile-form { border-color: #33334d !important; }
+        body.dark #edit-profile-form label { color: #9999bb !important; }
+        body.dark #edit-username,
+        body.dark #edit-password,
+        body.dark #edit-password-confirm { background: #2a2a3d !important; color: #e0e0ee !important; border-color: #44445a !important; }
+        body.dark #edit-profile-form button:last-of-type { background: #2a2a3d !important; color: #e0e0ee !important; }
+        body.dark .badge-cabinet h3,
+        body.dark .hidden-achievement-section h3 { color: #e0e0ee !important; }
+        body.dark .badge-cabinet > p,
+        body.dark .hidden-achievement-section > p { color: #9999bb !important; }
+        body.dark .badge-locked { background: #2a2a3d !important; color: #666 !important; }
+        body.dark .achievement-card.locked { background: #0d0d1a !important; }
+        body.dark .modal-content { background: #22223a !important; }
+        body.dark #modal-title { color: #e0e0ee !important; }
+        body.dark #modal-desc { color: #9999bb !important; }
     </style>
 </head>
 <body>
@@ -61,7 +85,7 @@
     <div class="header">
         <button class="back-btn" onclick="location.href='index.html'">⬅ 返回地圖</button>
         <h2 style="margin: 0; font-size: 1.2rem;">🧑‍🚀 個人主頁</h2>
-        <div style="width: 70px;"></div> 
+        <button class="back-btn" id="dark-btn" onclick="toggleDark()" style="padding:8px 12px;font-size:1rem;">🌙</button>
     </div>
 
     <div class="profile-card">
@@ -130,8 +154,18 @@
     </div>
 
     <script>
+        if (localStorage.getItem('metro_dark') === '1') {
+            document.body.classList.add('dark');
+            document.getElementById('dark-btn').textContent = '☀️';
+        }
+        function toggleDark() {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('metro_dark', isDark ? '1' : '0');
+            document.getElementById('dark-btn').textContent = isDark ? '☀️' : '🌙';
+        }
+
         const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
-        
+
         const savedUser = localStorage.getItem("metro_user");
         const userObj = savedUser ? JSON.parse(savedUser) : null;
         const currentUserId = userObj ? userObj.user_id : null;

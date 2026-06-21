@@ -76,9 +76,32 @@
         <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarChange(event)">
         <h2 id="user-name" style="margin: 0 0 5px 0; color: #333;">載入中...</h2>
         <p id="total-progress" style="color: #666; font-size: 0.9rem; margin: 0; margin-bottom: 15px;">探索進度計算中...</p>
-        <button onclick="logout()" style="background: #ff4d4f; color: white; border: none; padding: 6px 18px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">🚪 登出系統</button>
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+            <button onclick="logout()" style="background: #ff4d4f; color: white; border: none; padding: 6px 18px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">🚪 登出</button>
+            <button id="edit-profile-btn" onclick="toggleEditForm()" style="background: #eee; color: #333; border: none; padding: 6px 18px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">✏️ 編輯資料</button>
+        </div>
         <div id="admin-entry" style="display:none; margin-top: 12px;">
             <a href="admin.html" style="display:inline-block; background:#333; color:white; padding:6px 18px; border-radius:20px; font-size:0.85rem; font-weight:bold; text-decoration:none;">⚙️ 管理後台</a>
+        </div>
+
+        <div id="edit-profile-form" style="display:none; margin-top:16px; text-align:left; border-top:1px solid #eee; padding-top:16px;">
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.8rem; color:#666; display:block; margin-bottom:4px;">帳號名稱</label>
+                <input id="edit-username" type="text" style="width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; box-sizing:border-box;" placeholder="顯示名稱">
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.8rem; color:#666; display:block; margin-bottom:4px;">新密碼（留空則不更改）</label>
+                <input id="edit-password" type="password" style="width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; box-sizing:border-box;" placeholder="新密碼">
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-size:0.8rem; color:#666; display:block; margin-bottom:4px;">確認新密碼</label>
+                <input id="edit-password-confirm" type="password" style="width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; box-sizing:border-box;" placeholder="再輸入一次">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button onclick="saveProfile()" style="flex:1; padding:9px; background:#005edd; color:white; border:none; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.88rem;">💾 儲存</button>
+                <button onclick="toggleEditForm()" style="flex:1; padding:9px; background:#eee; color:#333; border:none; border-radius:20px; cursor:pointer; font-weight:bold; font-size:0.88rem;">取消</button>
+            </div>
+            <p id="edit-profile-msg" style="text-align:center; font-size:0.85rem; margin:8px 0 0; min-height:1.2em;"></p>
         </div>
     </div>
 
@@ -196,6 +219,49 @@
             finally { avatarDiv.style.opacity = '1'; event.target.value = ''; }
         }
 
+        function toggleEditForm() {
+            const form = document.getElementById('edit-profile-form');
+            const opening = form.style.display === 'none';
+            if (opening) {
+                document.getElementById('edit-username').value = (JSON.parse(localStorage.getItem('metro_user')) || {}).username || '';
+                document.getElementById('edit-password').value = '';
+                document.getElementById('edit-password-confirm').value = '';
+                document.getElementById('edit-profile-msg').textContent = '';
+            }
+            form.style.display = opening ? 'block' : 'none';
+        }
+
+        async function saveProfile() {
+            const cur = JSON.parse(localStorage.getItem('metro_user')) || {};
+            const newUsername = document.getElementById('edit-username').value.trim();
+            const newPassword = document.getElementById('edit-password').value;
+            const confirm    = document.getElementById('edit-password-confirm').value;
+            const msgBox     = document.getElementById('edit-profile-msg');
+
+            if (!newUsername) { msgBox.style.color = 'red'; msgBox.textContent = '名稱不能為空'; return; }
+            if (newPassword && newPassword !== confirm) { msgBox.style.color = 'red'; msgBox.textContent = '兩次密碼不一致'; return; }
+            if (!newPassword && newUsername === cur.username) { msgBox.style.color = '#888'; msgBox.textContent = '沒有任何變更'; return; }
+
+            msgBox.style.color = '#005edd'; msgBox.textContent = '⏳ 儲存中...';
+            const payload = { action: 'update_profile', user_id: currentUserId, new_username: newUsername };
+            if (newPassword) payload.new_password = newPassword;
+
+            try {
+                const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                const result = await res.json();
+                if (result.success) {
+                    const updated = { ...cur, username: result.username };
+                    localStorage.setItem('metro_user', JSON.stringify(updated));
+                    document.getElementById('user-name').textContent = result.username;
+                    if (!updated.avatar_url) document.getElementById('avatar-letter').textContent = result.username.charAt(0);
+                    msgBox.style.color = 'green'; msgBox.textContent = '✅ 儲存成功！';
+                    setTimeout(() => { document.getElementById('edit-profile-form').style.display = 'none'; }, 1200);
+                } else {
+                    msgBox.style.color = 'red'; msgBox.textContent = result.message || '儲存失敗';
+                }
+            } catch (e) { msgBox.style.color = 'red'; msgBox.textContent = '網路錯誤，請重試'; }
+        }
+
         function logout() {
             if(confirm("確定要登出並清除本機授權紀錄嗎？")) {
                 localStorage.clear();
@@ -219,8 +285,15 @@
                 const data = await response.json();
 
                 if (data.current_user && userObj) {
-                    const refreshed = { ...userObj, permissions: data.current_user.permissions || '', avatar_url: data.current_user.avatar_url || userObj.avatar_url || '' };
+                    const refreshed = {
+                        ...userObj,
+                        username:    data.current_user.username    || userObj.username,
+                        permissions: data.current_user.permissions || '',
+                        avatar_url:  data.current_user.avatar_url  || userObj.avatar_url || ''
+                    };
                     localStorage.setItem('metro_user', JSON.stringify(refreshed));
+                    document.getElementById('user-name').textContent = refreshed.username;
+                    if (!refreshed.avatar_url) document.getElementById('avatar-letter').textContent = refreshed.username.charAt(0);
                     const hasAccess = currentUserId === 'admin' || hasValidPerms(refreshed.permissions);
                     document.getElementById('admin-entry').style.display = hasAccess ? 'block' : 'none';
                 }

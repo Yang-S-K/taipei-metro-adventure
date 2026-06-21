@@ -137,6 +137,7 @@ GET {API_URL}?user_id={user_id}
 | `update_station` | 更新車站景點 JSON | station_id, spots_json → `{ success }` |
 | `set_permissions` | 設定使用者權限 | target_user_id, permissions（逗號分隔字串） → `{ success, permissions }` |
 | `delete_user` | 刪除使用者 + 所有打卡紀錄 | target_user_id → `{ success }` |
+| `update_profile` | 更改帳號名稱或密碼 | user_id, new_username（選填）, new_password（選填）→ `{ success, username }` |
 
 ---
 
@@ -290,17 +291,10 @@ POST 必須用 `Content-Type: text/plain;charset=utf-8`。doPost 最底部有 fa
 
 ## 待開發功能規格
 
-### 更改帳號名字 / 密碼
-**目標**：讓用戶在 profile.html 自行修改 username 和 password。
-
-**GAS 異動**：新增 `update_profile` action
-- 參數：`user_id`, `new_username`（選填）, `new_password`（選填）
-- 驗證：username 不可與現有用戶重複；至少要有一個欄位有變動
-- 回傳：`{ success, username }`；前端更新 localStorage `metro_user`
-
-**前端異動（只改 profile.html）**：
-- 加「編輯個人資料」按鈕，展開後顯示 username 和 password 兩個輸入框（password 有確認再輸入一次）
-- 送出呼叫 GAS `update_profile`，成功後更新 localStorage 並重新渲染暱稱顯示
+### 更改帳號名字 / 密碼 ✅（已完成）
+- profile.html：✏️ 編輯資料按鈕，展開表單（名稱 + 新密碼 + 確認密碼）
+- GAS：`update_profile` action，驗證名稱不重複
+- loadProfile 同步更新 username 到 localStorage 和顯示
 
 ---
 

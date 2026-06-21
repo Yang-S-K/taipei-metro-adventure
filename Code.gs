@@ -315,6 +315,30 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
+    if (params.action === 'update_profile') {
+      var usersSheet = ss.getSheetByName('Users');
+      var usersData = usersSheet.getDataRange().getValues();
+      var userRow = -1;
+      for (var i = 1; i < usersData.length; i++) {
+        if (String(usersData[i][0]) === String(params.user_id)) { userRow = i; break; }
+      }
+      if (userRow === -1) return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到使用者' })).setMimeType(ContentService.MimeType.JSON);
+
+      if (params.new_username) {
+        for (var i = 1; i < usersData.length; i++) {
+          if (i !== userRow && String(usersData[i][1]) === String(params.new_username)) {
+            return ContentService.createTextOutput(JSON.stringify({ success: false, message: '此名稱已被其他用戶使用' })).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+        usersSheet.getRange(userRow + 1, 2).setValue(params.new_username);
+      }
+      if (params.new_password) {
+        usersSheet.getRange(userRow + 1, 3).setValue(params.new_password);
+      }
+      var updatedUsername = params.new_username || String(usersData[userRow][1]);
+      return ContentService.createTextOutput(JSON.stringify({ success: true, username: updatedUsername })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     return ContentService.createTextOutput(JSON.stringify({ success: false, message: '未知的 action: ' + params.action }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {

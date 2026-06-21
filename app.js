@@ -20,7 +20,27 @@ if (userObj) {
     };
 }
 const map = L.map('map', { zoomControl: false }).setView([25.0462, 121.5174], 12);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }).addTo(map);
+
+const TILE_THEMES = [
+  { icon: '🌤', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' },
+  { icon: '🌙', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
+  { icon: '🗺', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
+];
+let currentTileLayer;
+let currentThemeIdx = parseInt(localStorage.getItem('metro_theme') || '0');
+
+function applyTheme(idx) {
+  if (currentTileLayer) map.removeLayer(currentTileLayer);
+  currentTileLayer = L.tileLayer(TILE_THEMES[idx].url, { attribution: '&copy; CARTO' }).addTo(map);
+  document.getElementById('theme-btn').textContent = TILE_THEMES[idx].icon;
+  localStorage.setItem('metro_theme', String(idx));
+  currentThemeIdx = idx;
+}
+applyTheme(currentThemeIdx);
+
+document.getElementById('theme-btn').addEventListener('click', () => {
+  applyTheme((currentThemeIdx + 1) % TILE_THEMES.length);
+});
 
 const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
 
@@ -802,7 +822,6 @@ function updateLabelsVisibility() {
 map.on('zoomend', updateLabelsVisibility);
 
 // 座標輔助工具（僅限管理員）
-const isAdmin = currentUserId === 'admin' || !!(userObj && userObj.permissions && userObj.permissions.trim());
 if (currentUserId === 'admin') {
     const coordDisplay = document.getElementById('coord-display');
     const coordCopied  = document.getElementById('coord-copied');

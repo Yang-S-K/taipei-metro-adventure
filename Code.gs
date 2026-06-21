@@ -160,6 +160,24 @@ function doPost(e) {
 
     // --- 打卡與照片上傳邏輯 ---
     if (params.action === 'checkin') {
+      // 防止重複打卡
+      var existRows = progressSheet.getDataRange().getValues();
+      var existHdr  = existRows[0];
+      var uidCol    = existHdr.indexOf('user_id');
+      var sidCol    = existHdr.indexOf('station_id');
+      for (var ci = 1; ci < existRows.length; ci++) {
+        if (String(existRows[ci][uidCol]) === String(params.user_id) &&
+            String(existRows[ci][sidCol]) === String(params.station_id)) {
+          return ContentService.createTextOutput(JSON.stringify({
+            success: true,
+            already_checked_in: true,
+            stamp_url: existRows[ci][existHdr.indexOf('stamp_url')],
+            photo_url: existRows[ci][existHdr.indexOf('photo_url')],
+            note:      existRows[ci][existHdr.indexOf('note')] || ''
+          })).setMimeType(ContentService.MimeType.TEXT);
+        }
+      }
+
       const stampUrl = uploadToDrive(params.stamp_base64, params.stamp_mime, 'stamp_' + params.user_id + '_' + params.station_id, params.user_id);
       const photoUrl = uploadToDrive(params.photo_base64, params.photo_mime, 'photo_' + params.user_id + '_' + params.station_id, params.user_id);
 

@@ -194,7 +194,7 @@
                 myRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 // 4. 生成時間軸 HTML
-                myRecords.forEach(record => {
+                myRecords.forEach((record, idx) => {
                     // 找出對應的車站資料，以取得站名和顏色
                     const stationInfo = stations.find(s => s.station_id === record.station_id);
                     if (!stationInfo) return;
@@ -230,7 +230,7 @@
                         <div class="timeline-dot" style="background-color: ${firstColor};"></div>
                         <div class="timeline-content" style="position: relative; padding-right: 95px;">
 
-                            <img id="stamp-${record.station_id}" class="clickable-img" src="${stampUrl}" style="position: absolute; right: 15px; top: 15px; width: 75px; height: 75px; border-radius: 50%; border: 2.5px dashed ${firstColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover; transform: rotate(-8deg); background: white; z-index: 5;" alt="印章">
+                            <img id="stamp-${idx}" class="clickable-img" src="${stampUrl}" style="position: absolute; right: 15px; top: 15px; width: 75px; height: 75px; border-radius: 50%; border: 2.5px dashed ${firstColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.15); object-fit: cover; transform: rotate(-8deg); background: white; z-index: 5;" alt="印章">
 
                             <div class="timeline-date">🗓️ ${dateStr}</div>
                             <div class="timeline-title">
@@ -239,19 +239,19 @@
                             </div>
                             ${noteText ? `<p style="font-size:0.85rem;color:#555;margin:4px 0 0;line-height:1.5;white-space:pre-wrap;">💬 ${noteText}</p>` : ''}
 
-                            <img id="photo-${record.station_id}" class="timeline-photo clickable-img" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
+                            <img id="photo-${idx}" class="timeline-photo clickable-img" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
                             ${moreGridHtml}
                         </div>
                     `;
                     container.appendChild(item);
 
                     // 綁定點擊放大事件
-                    document.getElementById(`stamp-${record.station_id}`).onclick = () => {
+                    document.getElementById(`stamp-${idx}`).onclick = () => {
                         lightboxImg.src = getHighResUrl(record.stamp_url);
                         lightboxCaption.textContent = `📍 ${stationInfo.station_name} 紀念章`;
                         lightbox.classList.remove('modal-hidden');
                     };
-                    document.getElementById(`photo-${record.station_id}`).onclick = () => {
+                    document.getElementById(`photo-${idx}`).onclick = () => {
                         lightboxImg.src = getHighResUrl(record.photo_url);
                         lightboxCaption.textContent = `📸 ${stationInfo.station_name} 實地合照`;
                         lightbox.classList.remove('modal-hidden');

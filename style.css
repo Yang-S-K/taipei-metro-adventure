@@ -1,0 +1,122 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+html, body {
+    width: 100%;
+    background-color: #e5e3df;
+}
+
+#app-container, #map {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* 車站資訊卡片 */
+#station-card {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: all 0.3s ease;
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+.card-hidden {
+    bottom: -100% !important; /* 隱藏時往下縮 */
+    opacity: 0;
+}
+
+#close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-top: 5px;
+    margin-bottom: 15px;
+}
+
+/* 解鎖/未解鎖視圖切換 */
+.hidden {
+    display: none !important;
+}
+
+#locked-view {
+    text-align: center;
+    padding: 20px 0;
+    color: #888;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.lock-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+/* 照片排版 */
+.gallery {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.img-box {
+    flex: 1;
+    text-align: center;
+}
+
+.img-box h4 {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.img-box img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #eee;
+}
+/* --- 捷運站名稱地圖標籤樣式 --- */
+.station-label {
+    background: rgba(255, 255, 255, 0.85); /* 半透明白底，避免擋住地圖細節 */
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    font-weight: 600;
+    color: #333;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.85rem;
+}
+
+/* 隱藏 Leaflet Tooltip 預設的指向小箭頭，讓畫面更乾淨 */
+.leaflet-tooltip.station-label::before {
+    display: none;
+}

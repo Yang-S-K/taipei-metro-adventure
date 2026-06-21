@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人主頁 - 雙北捷運足跡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background-color: #f5f5f5; padding-bottom: 40px; }
+        .header { background: #fff; padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .back-btn { background: #eee; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; color: #333; }
+        
+        .profile-card { background: white; max-width: 600px; margin: 20px auto; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
+        .profile-avatar { width: 80px; height: 80px; background: #005edd; color: white; font-size: 2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin: 0 auto 10px auto; position: relative; cursor: pointer; overflow: hidden; }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .avatar-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.45); color: white; font-size: 0.75rem; text-align: center; padding: 4px 0; opacity: 0; transition: opacity 0.2s; }
+        .profile-avatar:hover .avatar-overlay, .profile-avatar:active .avatar-overlay { opacity: 1; }
+        
+        .badge-cabinet { max-width: 600px; margin: 0 auto; padding: 0 20px; }
+        .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 15px; }
+
+        .badge-item { position: relative; padding: 15px 10px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        
+        /* 解鎖狀態的樣式 */
+        .badge-unlocked { color: white; border: 3px solid #ffd700; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+        .badge-unlocked:active { transform: scale(0.95); } /* 手機點擊時的回饋感 */
+
+        /* 未解鎖狀態的樣式 */
+        .badge-locked { background: #f0f0f0; color: #999; border: 2px dashed #ccc; filter: grayscale(100%); }
+        .badge-locked:active { transform: scale(0.95); }
+        .badge-icon { font-size: 2rem; }
+
+        /* --- 隱藏成就 --- */
+        .hidden-achievement-section { max-width: 600px; margin: 20px auto; padding: 0 20px 30px; }
+        .hidden-achievement-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .achievement-card { border-radius: 16px; padding: 18px; display: flex; align-items: center; gap: 15px; }
+        .achievement-card.locked { background: #1e1e2e; border: 2px dashed #444; }
+        .achievement-card.unlocked { background: linear-gradient(135deg, #ffd700, #ffaa00); box-shadow: 0 5px 20px rgba(255,170,0,0.35); }
+        .achievement-icon { font-size: 2.2rem; flex-shrink: 0; }
+        .achievement-title { font-weight: bold; font-size: 1rem; margin-bottom: 4px; color: #fff; }
+        .achievement-card.unlocked .achievement-title { color: #333; }
+        .achievement-desc { font-size: 0.85rem; color: #888; line-height: 1.4; }
+        .achievement-card.unlocked .achievement-desc { color: #554400; }
+        .achievement-date { font-size: 0.78rem; color: #666; margin-top: 5px; }
+        .achievement-card.unlocked .achievement-date { color: #7a5f00; font-weight: bold; }
+
+        /* --- 彈出視窗 (Modal) 樣式 --- */
+        #badge-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 1; transition: opacity 0.3s ease; }
+        .modal-hidden { opacity: 0 !important; pointer-events: none; }
+        .modal-content { background: white; width: 85%; max-width: 320px; border-radius: 16px; padding: 25px 20px; text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: translateY(0); transition: transform 0.3s ease; }
+        .modal-hidden .modal-content { transform: translateY(20px); }
+        #modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: #999; cursor: pointer; }
+        #modal-icon { font-size: 3.5rem; margin-bottom: 10px; }
+        #modal-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: #333; }
+        #modal-desc { font-size: 0.95rem; color: #666; margin-bottom: 15px; line-height: 1.5; }
+        #modal-date { display: inline-block; background: #fff3cd; color: #856404; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="back-btn" onclick="location.href='index.html'">⬅ 返回地圖</button>
+        <h2 style="margin: 0; font-size: 1.2rem;">🧑‍🚀 個人主頁</h2>
+        <div style="width: 70px;"></div> 
+    </div>
+
+    <div class="profile-card">
+        <div style="position:relative; width:80px; margin: 0 auto 10px auto;">
+            <div class="profile-avatar" id="user-avatar" onclick="document.getElementById('avatar-input').click()">
+                <img id="avatar-img" src="" alt="頭貼" style="display:none;">
+                <span id="avatar-letter">?</span>
+                <div class="avatar-overlay">📷 更換</div>
+            </div>
+            <button id="remove-avatar-btn" onclick="removeAvatar(event)" style="display:none; position:absolute; top:-2px; right:-2px; width:22px; height:22px; border-radius:50%; background:#ff4d4f; border:2px solid white; color:white; font-size:0.9rem; cursor:pointer; z-index:10; line-height:1; padding:0;">×</button>
+        </div>
+        <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarChange(event)">
+        <h2 id="user-name" style="margin: 0 0 5px 0; color: #333;">載入中...</h2>
+        <p id="total-progress" style="color: #666; font-size: 0.9rem; margin: 0; margin-bottom: 15px;">探索進度計算中...</p>
+        <button onclick="logout()" style="background: #ff4d4f; color: white; border: none; padding: 6px 18px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">🚪 登出系統</button>
+        <div id="admin-entry" style="display:none; margin-top: 12px;">
+            <a href="admin.html" style="display:inline-block; background:#333; color:white; padding:6px 18px; border-radius:20px; font-size:0.85rem; font-weight:bold; text-decoration:none;">⚙️ 管理後台</a>
+        </div>
+    </div>
+
+    <div id="loading" style="text-align: center; padding: 20px; color: #666;">⏳ 正在整理徽章展示櫃...</div>
+
+    <div class="badge-cabinet">
+        <h3 style="color: #333; margin-bottom: 5px;">🏅 路線制霸徽章</h3>
+        <p style="color: #888; font-size: 0.85rem; margin-top: 0;">點擊徽章可查看詳細成就資訊</p>
+        <div id="badge-grid" class="badge-grid"></div>
+    </div>
+
+    <div class="hidden-achievement-section">
+        <h3 style="color: #333; margin-bottom: 5px;">🔍 隱藏成就</h3>
+        <p style="color: #888; font-size: 0.85rem; margin-top: 0;">完成特殊條件即可解鎖</p>
+        <div id="hidden-achievement-grid" class="hidden-achievement-grid"></div>
+    </div>
+
+    <div id="badge-modal" class="modal-hidden">
+        <div class="modal-content">
+            <span id="modal-close">&times;</span>
+            <div id="modal-icon">🏆</div>
+            <div id="modal-title">路線名稱</div>
+            <div id="modal-desc">達成條件說明</div>
+            <div id="modal-date">達成時間：YYYY-MM-DD</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
+        
+        const savedUser = localStorage.getItem("metro_user");
+        const userObj = savedUser ? JSON.parse(savedUser) : null;
+        const currentUserId = userObj ? userObj.user_id : null;
+
+        const VALID_PERMS = new Set(['spots', 'users', 'checkins']);
+        const hasValidPerms = (perms) => (perms || '').split(',').some(p => VALID_PERMS.has(p.trim()));
+        if (currentUserId === 'admin' || hasValidPerms(userObj && userObj.permissions)) {
+            document.getElementById('admin-entry').style.display = 'block';
+        }
+
+        if (userObj) {
+            document.getElementById('user-name').textContent = userObj.username;
+            if (userObj.avatar_url) {
+                const img = document.getElementById('avatar-img');
+                img.src = userObj.avatar_url.replace("uc?id=", "thumbnail?id=") + "&sz=w200";
+                img.style.display = 'block';
+                document.getElementById('avatar-letter').style.display = 'none';
+                document.getElementById('remove-avatar-btn').style.display = 'block';
+            } else {
+                document.getElementById('avatar-letter').textContent = userObj.username.charAt(0);
+            }
+        }
+
+        const compressAndGetBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const MAX = 512;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+                    else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+            };
+            reader.onerror = reject;
+        });
+
+        async function removeAvatar(event) {
+            event.stopPropagation();
+            if (!confirm("確定要移除頭貼嗎？")) return;
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'remove_avatar', user_id: currentUserId })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const updatedUser = { ...userObj, avatar_url: '' };
+                    localStorage.setItem('metro_user', JSON.stringify(updatedUser));
+                    document.getElementById('avatar-img').style.display = 'none';
+                    document.getElementById('avatar-letter').style.display = 'block';
+                    document.getElementById('remove-avatar-btn').style.display = 'none';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function handleAvatarChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const avatarDiv = document.getElementById('user-avatar');
+            avatarDiv.style.opacity = '0.5';
+            try {
+                const base64 = await compressAndGetBase64(file);
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'update_avatar', user_id: currentUserId, avatar_base64: base64, avatar_mime: 'image/jpeg' })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const updatedUser = { ...userObj, avatar_url: result.avatar_url };
+                    localStorage.setItem('metro_user', JSON.stringify(updatedUser));
+                    const img = document.getElementById('avatar-img');
+                    img.src = result.avatar_url.replace("uc?id=", "thumbnail?id=") + "&sz=w200";
+                    img.style.display = 'block';
+                    document.getElementById('avatar-letter').style.display = 'none';
+                    document.getElementById('remove-avatar-btn').style.display = 'block';
+                }
+            } catch (e) { console.error(e); }
+            finally { avatarDiv.style.opacity = '1'; event.target.value = ''; }
+        }
+
+        function logout() {
+            if(confirm("確定要登出並清除本機授權紀錄嗎？")) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
+        }
+
+        // 彈窗 UI 控制
+        const modal = document.getElementById('badge-modal');
+        document.getElementById('modal-close').onclick = () => modal.classList.add('modal-hidden');
+        modal.onclick = (e) => { if (e.target.id === 'badge-modal') modal.classList.add('modal-hidden'); };
+
+        async function loadProfile() {
+            if (!currentUserId) {
+                document.getElementById('loading').textContent = "⚠️ 請先返回地圖頁面登入系統！";
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?user_id=${encodeURIComponent(currentUserId)}`);
+                const data = await response.json();
+
+                if (data.current_user && userObj) {
+                    const refreshed = { ...userObj, permissions: data.current_user.permissions || '', avatar_url: data.current_user.avatar_url || userObj.avatar_url || '' };
+                    localStorage.setItem('metro_user', JSON.stringify(refreshed));
+                    const hasAccess = currentUserId === 'admin' || hasValidPerms(refreshed.permissions);
+                    document.getElementById('admin-entry').style.display = hasAccess ? 'block' : 'none';
+                }
+
+                const stations = data.stations;
+                const progress = data.progress || [];
+                const grid = document.getElementById('badge-grid');
+                
+                document.getElementById('loading').style.display = 'none';
+
+                const myRecords = progress.filter(p => p.user_id === currentUserId);
+                
+                // 1. 先把「替身節點」過濾掉，不要算進總數！
+                const realStations = stations.filter(s => !s.station_id.includes('_hidden'));
+                
+                // 計算全圖總進度 (只算真實車站)
+                const totalStations = realStations.length;
+                // 用 Set 確保就算有交會站的打卡紀錄，也只算一個實體站
+                const visitedCount = new Set(myRecords.map(r => r.station_id)).size; 
+                document.getElementById('total-progress').textContent = `總計已探索 ${visitedCount} / ${totalStations} 個車站`;
+
+                // 2. 統計每條路線的進度
+                const routeStats = {};
+                realStations.forEach(station => {
+                    if (!station.line_name) return;
+                    
+                    // 🪓 把逗號分隔的多條路線切開 (解決奇葩徽章的關鍵)
+                    const lines = station.line_name.split(',');
+                    const colors = station.line_color ? station.line_color.split(',') : [];
+
+                    lines.forEach((lineStr, index) => {
+                        const lineName = lineStr.trim();
+                        const lineColor = colors[index] ? colors[index].trim() : '#888';
+
+                        if (!routeStats[lineName]) {
+                            routeStats[lineName] = { total: 0, visited: 0, color: lineColor, stationIds: [] };
+                        }
+                        
+                        routeStats[lineName].total++; // 該路線總數 +1
+                        routeStats[lineName].stationIds.push(station.station_id);
+                        
+                        // 檢查是否有打卡紀錄
+                        if (myRecords.some(p => p.station_id === station.station_id)) {
+                            routeStats[lineName].visited++; // 該路線解鎖數 +1
+                        }
+                    });
+                });
+
+                Object.keys(routeStats).forEach(lineName => {
+                    const stats = routeStats[lineName];
+                    const isCompleted = stats.visited === stats.total && stats.total > 0;
+                    const percent = Math.round((stats.visited / stats.total) * 100);
+                    const remaining = stats.total - stats.visited;
+                    
+                    const badge = document.createElement('div');
+                    
+                    // 計算該路線最後一次打卡的時間
+                    let latestDateStr = "";
+                    if (isCompleted) {
+                        const lineRecords = myRecords.filter(r => stats.stationIds.includes(r.station_id));
+                        if (lineRecords.length > 0) {
+                            lineRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+                            
+                            // 🔄 換算為台灣在地時間
+                            const d = new Date(lineRecords[0].date);
+                            const y = d.getFullYear();
+                            const m = String(d.getMonth() + 1).padStart(2, '0');
+                            const r = String(d.getDate()).padStart(2, '0');
+                            latestDateStr = `${y}-${m}-${r}`; 
+                        }
+                    }
+
+                    if (isCompleted) {
+                        badge.className = 'badge-item badge-unlocked';
+                        badge.style.backgroundColor = stats.color;
+                        badge.innerHTML = `<div class="badge-icon">🏆</div><div>${lineName}</div>`;
+                        
+                        // 點擊事件：解鎖狀態
+                        badge.onclick = () => {
+                            document.getElementById('modal-icon').textContent = "🏆";
+                            document.getElementById('modal-title').textContent = `${lineName} 制霸！`;
+                            document.getElementById('modal-title').style.color = stats.color;
+                            document.getElementById('modal-desc').textContent = `太強了！你已經成功探索全線共 ${stats.total} 個車站。`;
+                            document.getElementById('modal-date').style.display = "inline-block";
+                            document.getElementById('modal-date').textContent = `🎖️ 達成時間：${latestDateStr}`;
+                            modal.classList.remove('modal-hidden');
+                        };
+                    } else {
+                        badge.className = 'badge-item badge-locked';
+                        badge.innerHTML = `<div class="badge-icon" style="color: ${stats.color};">🔒</div><div>${lineName}</div><div style="font-weight: normal; font-size: 0.8rem;">${stats.visited} / ${stats.total}</div>`;
+                        
+                        // 點擊事件：未解鎖狀態
+                        badge.onclick = () => {
+                            document.getElementById('modal-icon').textContent = "🔒";
+                            document.getElementById('modal-title').textContent = `尚未解鎖`;
+                            document.getElementById('modal-title').style.color = "#333";
+                            document.getElementById('modal-desc').innerHTML = `距離解鎖 <b>${lineName}</b> 還差 <b style="color:${stats.color}">${remaining}</b> 站<br>目前進度：${percent}%`;
+                            document.getElementById('modal-date').style.display = "none"; // 未解鎖不顯示時間
+                            modal.classList.remove('modal-hidden');
+                        };
+                    }
+                    
+                    grid.appendChild(badge);
+                });
+
+                renderHiddenAchievements(realStations, myRecords);
+
+            } catch (error) {
+                document.getElementById('loading').textContent = "❌ 讀取失敗，請檢查網路連線。";
+            }
+        }
+
+        const HIDDEN_ACHIEVEMENTS = [
+            {
+                id: 'transfer_master',
+                icon: '🔀',
+                name: '轉乘大師',
+                desc: '解鎖所有雙北捷運交會站',
+                hint: '在所有路線的交叉點都留下足跡...',
+                getTargets: (stations) => stations.filter(s => s.line_name && s.line_name.includes(','))
+            },
+            {
+                id: 'endpoint_terminator',
+                icon: '🏁',
+                name: '端點終結者',
+                desc: '造訪所有捷運路線的終點站',
+                hint: '旅途的盡頭，才是真正的起點...',
+                getTargets: (stations) => stations.filter(s => String(s.is_terminal).toUpperCase() === 'TRUE')
+            }
+        ];
+
+        function renderHiddenAchievements(stations, records) {
+            const grid = document.getElementById('hidden-achievement-grid');
+
+            HIDDEN_ACHIEVEMENTS.forEach(achievement => {
+                const targets = achievement.getTargets(stations);
+                if (targets.length === 0) return;
+
+                const visitedTargets = targets.filter(s => records.some(r => r.station_id === s.station_id));
+                const unlocked = visitedTargets.length === targets.length;
+
+                let unlockDate = '';
+                if (unlocked) {
+                    const relevant = records.filter(r => targets.some(s => s.station_id === r.station_id));
+                    relevant.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    if (relevant.length) unlockDate = relevant[0].date;
+                }
+
+                const card = document.createElement('div');
+                card.className = `achievement-card ${unlocked ? 'unlocked' : 'locked'}`;
+
+                if (unlocked) {
+                    card.innerHTML = `
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div>
+                            <div class="achievement-title">【${achievement.name}】</div>
+                            <div class="achievement-desc">${achievement.desc}</div>
+                            <div class="achievement-date">🎖️ 達成時間：${unlockDate}</div>
+                        </div>`;
+                } else {
+                    card.innerHTML = `
+                        <div class="achievement-icon">🔒</div>
+                        <div>
+                            <div class="achievement-title">??? 神秘成就</div>
+                            <div class="achievement-desc">${achievement.hint}</div>
+                            <div class="achievement-date">進度：${visitedTargets.length} / ${targets.length}</div>
+                        </div>`;
+                }
+
+                grid.appendChild(card);
+            });
+        }
+
+        loadProfile();
+    </script>
+</body>
+</html>

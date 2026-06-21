@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理後台 - 雙北捷運足跡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #f0f0f0; }
+        .admin-header { background: #222; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 200; min-height: 48px; box-sizing: border-box; }
+        .back-btn { background: rgba(255,255,255,0.15); border: none; color: white; padding: 6px 14px; border-radius: 16px; cursor: pointer; font-size: 0.88rem; white-space: nowrap; }
+        .admin-header h2 { color: white; margin: 0; font-size: 1rem; flex: 1; }
+        #tab-bar { background: #333; display: flex; position: sticky; top: 48px; z-index: 100; }
+        .tab-btn { flex: 1; padding: 9px 4px; border: none; background: none; color: rgba(255,255,255,0.5); font-size: 0.78rem; cursor: pointer; font-weight: bold; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .tab-btn.active { color: white; border-bottom-color: #4da3ff; }
+        .view-pad { padding: 14px; }
+
+        /* 共用 */
+        .search-input { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px; font-size: 0.9rem; box-sizing: border-box; outline: none; background: white; }
+        .search-input:focus { border-color: #005edd; }
+
+        /* 總覽 */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+        .stat-card { background: white; border-radius: 12px; padding: 16px 12px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .stat-num { font-size: 2rem; font-weight: bold; color: #005edd; line-height: 1; }
+        .stat-label { font-size: 0.76rem; color: #888; margin-top: 6px; }
+        .stat-section { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .stat-section h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #333; }
+        .rank-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f5f5f5; }
+        .rank-item:last-child { border-bottom: none; }
+        .rank-num { font-size: 0.78rem; font-weight: bold; color: #aaa; width: 20px; text-align: center; }
+        .rank-name { flex: 1; font-size: 0.88rem; }
+        .rank-count { font-size: 0.82rem; color: #005edd; font-weight: bold; }
+        .recent-item { padding: 7px 0; border-bottom: 1px solid #f5f5f5; }
+        .recent-item:last-child { border-bottom: none; }
+        .recent-main { font-size: 0.85rem; font-weight: bold; }
+        .recent-sub { font-size: 0.76rem; color: #888; margin-top: 1px; }
+
+        /* 路線篩選 */
+        #line-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+        .line-filter-btn { border: none; border-radius: 12px; padding: 4px 10px; font-size: 0.76rem; font-weight: bold; cursor: pointer; color: white; transition: opacity 0.2s; }
+        .line-filter-btn.inactive { opacity: 0.3; }
+
+        /* 車站清單 */
+        .list-container { display: flex; flex-direction: column; gap: 8px; }
+        .station-list-item { background: white; border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: background 0.15s; }
+        .station-list-item:hover { background: #eef3ff; }
+        .station-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .station-info { flex: 1; min-width: 0; }
+        .station-list-name { font-weight: bold; font-size: 0.9rem; }
+        .station-list-line { font-size: 0.76rem; color: #888; margin-top: 2px; }
+        .spots-count-badge { font-size: 0.72rem; background: #e8f0ff; color: #005edd; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; white-space: nowrap; }
+        .spots-count-badge.empty { background: #f0f0f0; color: #aaa; }
+
+        /* 景點編輯 */
+        #edit-view { padding: 14px; padding-bottom: 0; display: none; }
+        .edit-header { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+        .edit-header h3 { margin: 0 0 2px 0; font-size: 1.05rem; }
+        .edit-header p { margin: 0; font-size: 0.78rem; color: #aaa; font-family: monospace; }
+        .spot-row { background: white; border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .spot-row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .spot-row-num { font-size: 0.8rem; font-weight: bold; color: #005edd; }
+        .spot-delete-btn { background: none; border: none; color: #ff4d4f; font-size: 1.1rem; cursor: pointer; padding: 2px 4px; }
+        .spot-field { margin-bottom: 6px; }
+        .spot-field label { display: block; font-size: 0.71rem; color: #999; margin-bottom: 2px; }
+        .spot-field input { width: 100%; padding: 7px 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 0.85rem; box-sizing: border-box; outline: none; }
+        .spot-field input:focus { border-color: #005edd; }
+        .spot-field input[name="name"] { font-weight: bold; }
+        .spot-field select { width: 100%; padding: 7px 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 0.85rem; box-sizing: border-box; outline: none; background: white; }
+        .spot-field select:focus { border-color: #005edd; }
+        #add-spot-row-btn { width: 100%; padding: 11px; border: 2px dashed #ccc; border-radius: 10px; background: none; color: #888; font-size: 0.88rem; cursor: pointer; margin-bottom: 12px; transition: all 0.15s; }
+        #add-spot-row-btn:hover { border-color: #005edd; color: #005edd; }
+        .save-bar { position: sticky; bottom: 0; background: #f0f0f0; padding: 10px 0 16px; }
+        .save-btn { width: 100%; padding: 13px; background: #005edd; color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        #save-msg { text-align: center; font-size: 0.85rem; margin-top: 6px; min-height: 1.2em; }
+
+        /* 使用者管理 */
+        .user-card { background: white; border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 10px; }
+        .user-card-top { display: flex; align-items: center; gap: 12px; }
+        .user-avatar-sm { width: 44px; height: 44px; border-radius: 50%; background: #005edd; color: white; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .user-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-weight: bold; font-size: 0.92rem; }
+        .user-id-tag { font-size: 0.73rem; color: #bbb; font-family: monospace; }
+        .user-stats { font-size: 0.78rem; color: #777; margin-top: 2px; }
+        .user-card-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+        .superadmin-badge { font-size: 0.7rem; background: #333; color: white; padding: 2px 8px; border-radius: 10px; }
+        .user-delete-btn { background: none; border: 1px solid #ff4d4f; color: #ff4d4f; border-radius: 8px; padding: 4px 10px; font-size: 0.73rem; cursor: pointer; }
+        /* 權限 chips（超管才看得到） */
+        .perm-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; flex-wrap: wrap; }
+        .perm-label { font-size: 0.72rem; color: #999; }
+        .perm-chip { font-size: 0.72rem; border: 1px solid #ccc; color: #aaa; border-radius: 14px; padding: 3px 10px; cursor: pointer; transition: all 0.15s; user-select: none; }
+        .perm-chip.active { background: #005edd; border-color: #005edd; color: white; }
+        .perm-chip:hover { opacity: 0.8; }
+        .perm-saving { font-size: 0.7rem; color: #888; margin-left: 4px; }
+
+        /* 打卡管理 */
+        .checkin-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .user-filter-btn { border: none; border-radius: 16px; padding: 5px 12px; font-size: 0.78rem; cursor: pointer; background: #e0e0e0; color: #444; transition: all 0.15s; white-space: nowrap; }
+        .user-filter-btn.active { background: #005edd; color: white; }
+        .checkin-card { background: white; border-radius: 10px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
+        .checkin-summary { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+        .checkin-dot { width: 34px; height: 34px; border-radius: 50%; background: #005edd; color: white; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .checkin-info { flex: 1; min-width: 0; }
+        .checkin-user { font-weight: bold; font-size: 0.88rem; }
+        .checkin-meta { font-size: 0.75rem; color: #888; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .checkin-btns { display: flex; gap: 6px; flex-shrink: 0; }
+        .expand-btn { background: #f0f0f0; border: none; border-radius: 8px; padding: 5px 10px; font-size: 0.76rem; cursor: pointer; }
+        .del-record-btn { background: none; border: 1px solid #ff4d4f; color: #ff4d4f; border-radius: 8px; padding: 5px 8px; font-size: 0.76rem; cursor: pointer; }
+        .checkin-photos { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
+        .checkin-photos.hidden { display: none; }
+        .photo-item { position: relative; width: 78px; text-align: center; }
+        .photo-item img { width: 78px; height: 68px; object-fit: cover; border-radius: 6px; background: #eee; display: block; }
+        .photo-item-label { font-size: 0.62rem; color: #888; margin-top: 2px; }
+        .photo-del-btn { position: absolute; top: 2px; right: 2px; background: rgba(255,77,79,0.9); border: none; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.68rem; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .no-photos-msg { font-size: 0.82rem; color: #bbb; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <button class="back-btn" id="header-back-btn">⬅ 返回</button>
+        <h2>⚙️ 管理後台</h2>
+    </div>
+    <div id="tab-bar">
+        <button class="tab-btn active" data-tab="overview">📊 總覽</button>
+        <button class="tab-btn" data-tab="spots">🗺 景點</button>
+        <button class="tab-btn" data-tab="users">👥 使用者</button>
+        <button class="tab-btn" data-tab="checkins">📸 打卡</button>
+    </div>
+
+    <div id="tab-overview" class="view-pad">
+        <div class="stats-grid" id="stats-grid"><p style="color:#888;text-align:center;grid-column:1/-1;">⏳ 載入中...</p></div>
+        <div class="stat-section"><h4>🏆 最多打卡車站 Top 10</h4><div id="top-stations-list"></div></div>
+        <div class="stat-section"><h4>🕐 最近打卡紀錄</h4><div id="recent-list"></div></div>
+    </div>
+
+    <div id="tab-spots" style="display:none;">
+        <div id="list-view" class="view-pad">
+            <input type="text" id="station-search" class="search-input" placeholder="🔍 搜尋車站名稱...">
+            <div id="line-filter"></div>
+            <div id="station-list" class="list-container"><p style="color:#888;text-align:center;padding:20px;">⏳ 載入中...</p></div>
+        </div>
+        <div id="edit-view">
+            <div class="edit-header"><h3 id="edit-station-name"></h3><p id="edit-station-id"></p></div>
+            <div id="spots-editor"></div>
+            <button id="add-spot-row-btn">＋ 新增景點</button>
+            <div class="save-bar">
+                <button class="save-btn" id="save-btn">儲存景點資料</button>
+                <p id="save-msg"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-users" class="view-pad" style="display:none;">
+        <div id="user-list"><p style="color:#888;text-align:center;padding:20px;">⏳ 載入中...</p></div>
+    </div>
+
+    <div id="tab-checkins" class="view-pad" style="display:none;">
+        <div class="checkin-filter" id="user-filter-bar"><button class="user-filter-btn active" data-uid="">全部</button></div>
+        <div id="checkin-list"><p style="color:#888;text-align:center;padding:20px;">⏳ 載入中...</p></div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzMS3h1Cm4cFREYEkOQVKyS4VyQad4dKEvEv9DveZtFMQ1PG_6kkhi-5g0UONcOaYSv_g/exec";
+
+        const savedUser     = localStorage.getItem('metro_user');
+        const userObj       = savedUser ? JSON.parse(savedUser) : null;
+        const currentUserId = userObj ? userObj.user_id : null;
+        const VALID_PERMS  = ['spots', 'users', 'checkins'];
+        const isSuperAdmin = currentUserId === 'admin';
+        const userPerms    = new Set((userObj?.permissions || '').split(',').map(p => p.trim()).filter(p => VALID_PERMS.includes(p)));
+        const can          = perm => isSuperAdmin || userPerms.has(perm);
+        const hasAnyAccess = isSuperAdmin || userPerms.size > 0;
+
+        if (!hasAnyAccess) { alert('⛔ 僅限管理員存取'); location.href = 'index.html'; }
+
+        // 隱藏無權限的 tab
+        if (!can('spots'))    document.querySelector('[data-tab="spots"]').style.display    = 'none';
+        if (!can('users'))    document.querySelector('[data-tab="users"]').style.display    = 'none';
+        if (!can('checkins')) document.querySelector('[data-tab="checkins"]').style.display = 'none';
+
+        let allStations = [], allUsers = [], allProgress = [];
+        let activeLines = new Set(), currentStation = null, statsRendered = false;
+
+        const thumb = url => url && url.includes('uc?id=') ? url.replace('uc?id=', 'thumbnail?id=') + '&sz=w200' : (url || '');
+        const esc   = str => String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+        // ── Tab 切換 ─────────────────────────────────────
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            ['overview','spots','users','checkins'].forEach(t => {
+                const el = document.getElementById('tab-' + t);
+                if (el) el.style.display = t === tab ? 'block' : 'none';
+            });
+            document.getElementById('tab-bar').style.display = 'flex';
+            if (tab === 'overview' && !statsRendered && allStations.length) { renderStats(); statsRendered = true; }
+            if (tab === 'users')    renderUserList();
+            if (tab === 'checkins') renderCheckinList('');
+        }
+
+        // ── 載入資料 ──────────────────────────────────────
+        async function loadAll() {
+            try {
+                const res  = await fetch(`${API_URL}?user_id=${encodeURIComponent(currentUserId)}`);
+                const data = await res.json();
+
+                // 同步最新權限到 localStorage
+                if (data.current_user && userObj) {
+                    const refreshed = { ...userObj, permissions: data.current_user.permissions || '' };
+                    localStorage.setItem('metro_user', JSON.stringify(refreshed));
+                }
+
+                allStations = (data.stations    || []).filter(s => !s.station_id.includes('_hidden'));
+                allUsers    = data.all_users    || [];
+                allProgress = data.all_progress || [];
+                setupLineFilter();
+                renderStationList();
+                renderStats();
+                statsRendered = true;
+                setupCheckinFilter();
+            } catch(e) {
+                document.getElementById('stats-grid').innerHTML = '<p style="color:red;grid-column:1/-1;text-align:center;">❌ 載入失敗，請重新整理</p>';
+            }
+        }
+
+        // ── 總覽 ──────────────────────────────────────────
+        function renderStats() {
+            const stationMap = {};
+            allStations.forEach(s => stationMap[s.station_id] = s.station_name);
+            const spotsSet   = allStations.filter(s => { try { return s.spots_json && JSON.parse(s.spots_json).length > 0; } catch(e){ return false; } }).length;
+            const avgPerUser = allUsers.length > 0 ? (allProgress.length / allUsers.length).toFixed(1) : '0';
+
+            document.getElementById('stats-grid').innerHTML = [
+                { num: allUsers.length,    label: '總使用者數' },
+                { num: allProgress.length, label: '總打卡紀錄' },
+                { num: `${spotsSet}/${allStations.length}`, label: '已設景點車站' },
+                { num: avgPerUser,         label: '人均打卡站數' }
+            ].map(s => `<div class="stat-card"><div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div></div>`).join('');
+
+            const countMap = {};
+            allProgress.forEach(p => { countMap[p.station_id] = (countMap[p.station_id] || 0) + 1; });
+            const top10 = Object.entries(countMap).sort((a,b) => b[1]-a[1]).slice(0,10);
+            document.getElementById('top-stations-list').innerHTML = top10.length
+                ? top10.map(([sid,cnt],i) => `<div class="rank-item"><span class="rank-num">${i+1}</span><span class="rank-name">${stationMap[sid]||sid}</span><span class="rank-count">${cnt} 次</span></div>`).join('')
+                : '<p style="color:#bbb;font-size:0.85rem;">尚無打卡紀錄</p>';
+
+            const userNameMap = {};
+            allUsers.forEach(u => userNameMap[u.user_id] = u.username);
+            const recent = [...allProgress].sort((a,b) => new Date(b.date||0)-new Date(a.date||0)).slice(0,10);
+            document.getElementById('recent-list').innerHTML = recent.length
+                ? recent.map(p => `<div class="recent-item"><div class="recent-main">${userNameMap[p.user_id]||p.user_id} → ${stationMap[p.station_id]||p.station_id}</div><div class="recent-sub">${String(p.date||'').split('T')[0]}</div></div>`).join('')
+                : '<p style="color:#bbb;font-size:0.85rem;">尚無打卡紀錄</p>';
+        }
+
+        // ── 路線篩選 ──────────────────────────────────────
+        function setupLineFilter() {
+            const lc = {};
+            allStations.forEach(s => {
+                (s.line_name||'').split(',').forEach((n,i) => {
+                    const k = n.trim(), c = (s.line_color||'').split(',');
+                    if (k && !lc[k]) lc[k] = (c[i]||c[0]||'#888').trim();
+                });
+            });
+            activeLines = new Set(Object.keys(lc));
+            const box = document.getElementById('line-filter');
+            box.innerHTML = '';
+            Object.entries(lc).forEach(([name,color]) => {
+                const btn = document.createElement('button');
+                btn.className = 'line-filter-btn'; btn.dataset.line = name;
+                btn.style.background = color; btn.textContent = name.replace(/線$/,'');
+                btn.addEventListener('click', () => {
+                    activeLines.has(name) ? (activeLines.delete(name), btn.classList.add('inactive')) : (activeLines.add(name), btn.classList.remove('inactive'));
+                    renderStationList();
+                });
+                box.appendChild(btn);
+            });
+        }
+
+        // ── 車站清單 ──────────────────────────────────────
+        function renderStationList() {
+            const q = (document.getElementById('station-search').value||'').trim();
+            const list = document.getElementById('station-list');
+            const filtered = allStations.filter(s => (s.line_name||'').split(',').some(l => activeLines.has(l.trim())) && (!q || s.station_name.includes(q)));
+            if (!filtered.length) { list.innerHTML = '<p style="color:#aaa;text-align:center;margin-top:16px;">沒有符合的車站</p>'; return; }
+            list.innerHTML = '';
+            filtered.forEach(s => {
+                const dot = (s.line_color||'#888').split(',')[0].trim();
+                let cnt = 0; if (s.spots_json) { try { cnt = JSON.parse(s.spots_json).length; } catch(e){} }
+                const item = document.createElement('div');
+                item.className = 'station-list-item';
+                item.innerHTML = `<div class="station-dot" style="background:${dot};"></div>
+                    <div class="station-info"><div class="station-list-name">${s.station_name}</div><div class="station-list-line">${s.line_name||''}</div></div>
+                    <div class="spots-count-badge ${cnt===0?'empty':''}">${cnt>0?cnt+' 個景點':'未設定'}</div>`;
+                item.addEventListener('click', () => openEditView(s));
+                list.appendChild(item);
+            });
+        }
+
+        // ── 景點編輯 ──────────────────────────────────────
+        function openEditView(station) {
+            currentStation = station;
+            document.getElementById('edit-station-name').textContent = station.station_name;
+            document.getElementById('edit-station-id').textContent   = station.station_id;
+            document.getElementById('save-msg').textContent = '';
+            let spots = []; if (station.spots_json) { try { spots = JSON.parse(station.spots_json); } catch(e){} }
+            renderSpotsEditor(spots);
+            document.getElementById('list-view').style.display  = 'none';
+            document.getElementById('edit-view').style.display  = 'block';
+            document.getElementById('tab-bar').style.display    = 'none';
+            const back = document.getElementById('header-back-btn');
+            back.textContent = '⬅ 返回清單'; back.onclick = showListView;
+        }
+        function showListView() {
+            document.getElementById('edit-view').style.display  = 'none';
+            document.getElementById('list-view').style.display  = 'block';
+            document.getElementById('tab-bar').style.display    = 'flex';
+            const back = document.getElementById('header-back-btn');
+            back.textContent = '⬅ 返回'; back.onclick = () => location.href = 'profile.html';
+            renderStationList();
+        }
+        function renderSpotsEditor(spots) { const e = document.getElementById('spots-editor'); e.innerHTML = ''; spots.forEach(s => appendSpotRow(s)); }
+        function appendSpotRow(spot) {
+            const editor = document.getElementById('spots-editor');
+            const num = editor.querySelectorAll('.spot-row').length + 1;
+            const isFoodSelected = spot.category === '食物飲料';
+            const div = document.createElement('div'); div.className = 'spot-row';
+            div.innerHTML = `<div class="spot-row-header"><span class="spot-row-num">景點 ${num}</span><button class="spot-delete-btn">🗑</button></div>
+                <div class="spot-field"><label>分類</label>
+                    <select name="category">
+                        <option value="景點" ${!isFoodSelected ? 'selected' : ''}>🏛 景點</option>
+                        <option value="食物飲料" ${isFoodSelected ? 'selected' : ''}>🍜 食物飲料</option>
+                    </select>
+                </div>
+                <div class="spot-field"><label>名稱 *</label><input name="name" value="${esc(spot.name||'')}" placeholder="景點 / 餐廳 / 小吃名稱"></div>
+                <div class="spot-field"><label>開放時間</label><input name="hours" value="${esc(spot.hours||'')}" placeholder="09:00-17:00 或 全天"></div>
+                <div class="spot-field"><label>地址</label><input name="address" value="${esc(spot.address||'')}" placeholder="縣市區路..."></div>
+                <div class="spot-field"><label>Google Maps 網址</label><input name="url" value="${esc(spot.url||'')}" placeholder="https://maps.app.goo.gl/..."></div>`;
+            div.querySelector('.spot-delete-btn').addEventListener('click', () => { div.remove(); renumber(); });
+            editor.appendChild(div);
+        }
+        function renumber() { document.querySelectorAll('.spot-row .spot-row-num').forEach((el,i) => el.textContent = `景點 ${i+1}`); }
+        document.getElementById('add-spot-row-btn').addEventListener('click', () => appendSpotRow({}));
+        document.getElementById('station-search').addEventListener('input', renderStationList);
+        document.getElementById('header-back-btn').onclick = () => location.href = 'profile.html';
+
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            const spots = [];
+            document.querySelectorAll('.spot-row').forEach(row => {
+                const name = row.querySelector('input[name="name"]').value.trim(); if (!name) return;
+                const spot = { name, category: row.querySelector('select[name="category"]').value || '景點' };
+                const h = row.querySelector('input[name="hours"]').value.trim();
+                const a = row.querySelector('input[name="address"]').value.trim();
+                const u = row.querySelector('input[name="url"]').value.trim();
+                if (h) spot.hours = h; if (a) spot.address = a; if (u) spot.url = u;
+                spots.push(spot);
+            });
+            const saveBtn = document.getElementById('save-btn'), saveMsg = document.getElementById('save-msg');
+            saveBtn.disabled = true; saveMsg.style.color = '#005edd'; saveMsg.textContent = '⏳ 儲存中...';
+            try {
+                const res = await fetch(API_URL, { method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'update_station', station_id: currentStation.station_id, spots_json: JSON.stringify(spots) }) });
+                const result = await res.json();
+                if (result.success) { currentStation.spots_json = JSON.stringify(spots); saveMsg.style.color = 'green'; saveMsg.textContent = `✅ 已儲存 ${spots.length} 個景點`; }
+                else { saveMsg.style.color = 'red'; saveMsg.textContent = result.message || '儲存失敗'; }
+            } catch(e) { saveMsg.style.color = 'red'; saveMsg.textContent = '❌ 網路錯誤'; }
+            finally { saveBtn.disabled = false; }
+        });
+
+        // ── 使用者管理 ────────────────────────────────────
+        const PERM_LABELS = { spots: '景點管理', users: '使用者管理', checkins: '打卡管理' };
+
+        function renderUserList() {
+            const list = document.getElementById('user-list');
+            if (!allUsers.length) {
+                list.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;"><p>尚無使用者資料</p><p style="font-size:0.78rem;">請確認 GAS doGet 已回傳 all_users</p></div>';
+                return;
+            }
+            list.innerHTML = '';
+            allUsers.forEach(user => {
+                const visitCount = allProgress.filter(p => p.user_id === user.user_id).length;
+                const isSuper    = user.user_id === 'admin';
+                const card = document.createElement('div'); card.className = 'user-card';
+                const avatarHtml = user.avatar_url ? `<img src="${thumb(user.avatar_url)}" alt="" onerror="this.style.display='none'">` : '';
+
+                let permRowHtml = '';
+                if (!isSuper && isSuperAdmin) {
+                    const uPerms = new Set((user.permissions||'').split(',').map(p=>p.trim()).filter(Boolean));
+                    const chips = Object.entries(PERM_LABELS).map(([key, label]) =>
+                        `<span class="perm-chip ${uPerms.has(key)?'active':''}" data-perm="${key}">${label}</span>`
+                    ).join('');
+                    permRowHtml = `<div class="perm-row"><span class="perm-label">權限：</span>${chips}<span class="perm-saving"></span></div>`;
+                }
+
+                card.innerHTML = `<div class="user-card-top">
+                    <div class="user-avatar-sm">${avatarHtml}${!user.avatar_url ? user.username.charAt(0) : ''}</div>
+                    <div class="user-info">
+                        <div class="user-name">${user.username}</div>
+                        <div class="user-id-tag">${user.user_id}</div>
+                        <div class="user-stats">打卡 ${visitCount} / ${allStations.length} 站</div>
+                    </div>
+                    <div class="user-card-actions">
+                        ${isSuper ? '<span class="superadmin-badge">超級管理員</span>' : `<button class="user-delete-btn">刪除</button>`}
+                    </div>
+                </div>${permRowHtml}`;
+
+                if (!isSuper) {
+                    card.querySelector('.user-delete-btn').addEventListener('click', () => deleteUser(user.user_id, user.username, card));
+                    if (isSuperAdmin) {
+                        card.querySelectorAll('.perm-chip').forEach(chip => {
+                            chip.addEventListener('click', () => togglePerm(user, chip, card));
+                        });
+                    }
+                }
+                list.appendChild(card);
+            });
+        }
+
+        async function togglePerm(user, chip, card) {
+            const perm     = chip.dataset.perm;
+            const permsSet = new Set((user.permissions||'').split(',').map(p=>p.trim()).filter(Boolean));
+            permsSet.has(perm) ? permsSet.delete(perm) : permsSet.add(perm);
+            const newPerms = [...permsSet].join(',');
+            const saving   = card.querySelector('.perm-saving');
+            chip.style.pointerEvents = 'none'; saving.textContent = '⏳';
+            try {
+                const res = await fetch(API_URL, { method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'set_permissions', target_user_id: user.user_id, permissions: newPerms }) });
+                const result = await res.json();
+                if (result.success) {
+                    user.permissions = result.permissions;
+                    const idx = allUsers.findIndex(u => u.user_id === user.user_id);
+                    if (idx >= 0) allUsers[idx].permissions = result.permissions;
+                    chip.classList.toggle('active', permsSet.has(perm));
+                    saving.textContent = '✓';
+                    setTimeout(() => saving.textContent = '', 1500);
+                } else { saving.textContent = '❌'; alert(result.message||'操作失敗'); }
+            } catch(e) { saving.textContent = '❌'; alert('❌ 網路錯誤'); }
+            finally { chip.style.pointerEvents = ''; }
+        }
+
+        async function deleteUser(userId, username, card) {
+            if (!confirm(`確定要刪除「${username}」（${userId}）？\n將同時刪除其所有打卡紀錄，無法復原。`)) return;
+            try {
+                const res = await fetch(API_URL, { method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'delete_user', target_user_id: userId }) });
+                const result = await res.json();
+                if (result.success) { allUsers = allUsers.filter(u=>u.user_id!==userId); allProgress = allProgress.filter(p=>p.user_id!==userId); card.remove(); }
+                else alert(result.message||'刪除失敗');
+            } catch(e) { alert('❌ 網路錯誤'); }
+        }
+
+        // ── 打卡管理 ──────────────────────────────────────
+        function setupCheckinFilter() {
+            const bar = document.getElementById('user-filter-bar');
+            bar.innerHTML = '<button class="user-filter-btn active" data-uid="">全部</button>';
+            allUsers.forEach(u => {
+                const btn = document.createElement('button');
+                btn.className = 'user-filter-btn'; btn.dataset.uid = u.user_id; btn.textContent = u.username;
+                bar.appendChild(btn);
+            });
+            bar.addEventListener('click', e => {
+                const btn = e.target.closest('.user-filter-btn'); if (!btn) return;
+                bar.querySelectorAll('.user-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active'); renderCheckinList(btn.dataset.uid);
+            });
+        }
+
+        function renderCheckinList(filterUid) {
+            const container = document.getElementById('checkin-list');
+            const stationMap = {}, userNameMap = {};
+            allStations.forEach(s => stationMap[s.station_id] = s.station_name);
+            allUsers.forEach(u => userNameMap[u.user_id] = u.username);
+            let records = filterUid ? allProgress.filter(r => r.user_id === filterUid) : [...allProgress];
+            records.sort((a,b) => new Date(b.date||0)-new Date(a.date||0));
+            if (!records.length) { container.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px;">暫無打卡紀錄</p>'; return; }
+            container.innerHTML = '';
+            records.forEach(r => container.appendChild(buildCheckinCard(r, stationMap, userNameMap)));
+        }
+
+        function buildCheckinCard(record, stationMap, userNameMap) {
+            const username = userNameMap[record.user_id]||record.user_id;
+            const stName   = stationMap[record.station_id]||record.station_id;
+            const dateStr  = String(record.date||'').split('T')[0]||'未知日期';
+            const card = document.createElement('div'); card.className = 'checkin-card';
+            card.innerHTML = `<div class="checkin-summary">
+                <div class="checkin-dot">${username.charAt(0)}</div>
+                <div class="checkin-info"><div class="checkin-user">${username}</div><div class="checkin-meta">${stName} · ${dateStr}</div></div>
+                <div class="checkin-btns"><button class="expand-btn">照片</button><button class="del-record-btn">刪除</button></div>
+            </div><div class="checkin-photos hidden"></div>`;
+            const photosDiv = card.querySelector('.checkin-photos');
+            const expandBtn = card.querySelector('.expand-btn');
+            expandBtn.addEventListener('click', () => {
+                const hidden = photosDiv.classList.toggle('hidden');
+                expandBtn.textContent = hidden ? '照片' : '收起';
+                if (!hidden && !photosDiv.hasChildNodes()) renderCheckinPhotos(photosDiv, record);
+            });
+            card.querySelector('.del-record-btn').addEventListener('click', () => deleteCheckin(record.user_id, record.station_id, card));
+            return card;
+        }
+
+        function renderCheckinPhotos(container, record) {
+            const photos = [];
+            if (record.stamp_url) photos.push({ url: record.stamp_url, type:'stamp', label:'紀念章' });
+            if (record.photo_url) photos.push({ url: record.photo_url, type:'main',  label:'主要合照' });
+            (record.extra_photo_urls||'').split(',').filter(u=>u.trim()).forEach(url => photos.push({ url, type:'extra', label:'其他合照' }));
+            (record.spot_photo_urls ||'').split(',').filter(u=>u.trim()).forEach(url => photos.push({ url, type:'spot',  label:'景點照' }));
+            if (!photos.length) { container.innerHTML = '<p class="no-photos-msg">此紀錄無照片</p>'; return; }
+            photos.forEach(photo => {
+                const item = document.createElement('div'); item.className = 'photo-item';
+                item.innerHTML = `<img src="${thumb(photo.url)}" alt="${photo.label}" onerror="this.style.opacity='0.3'">
+                    <div class="photo-item-label">${photo.label}</div>
+                    <button class="photo-del-btn">✕</button>`;
+                item.querySelector('.photo-del-btn').addEventListener('click', () => deletePhoto(record, photo.url, photo.type, item));
+                container.appendChild(item);
+            });
+        }
+
+        async function deleteCheckin(userId, stationId, card) {
+            const stationMap = {}, userNameMap = {};
+            allStations.forEach(s => stationMap[s.station_id] = s.station_name);
+            allUsers.forEach(u => userNameMap[u.user_id] = u.username);
+            if (!confirm(`確定要刪除「${userNameMap[userId]||userId}」在「${stationMap[stationId]||stationId}」的打卡紀錄？`)) return;
+            try {
+                const res = await fetch(API_URL, { method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'delete_checkin', target_user_id: userId, station_id: stationId }) });
+                const result = await res.json();
+                if (result.success) { allProgress = allProgress.filter(p => !(p.user_id===userId && p.station_id===stationId)); card.remove(); }
+                else alert(result.message||'刪除失敗');
+            } catch(e) { alert('❌ 網路錯誤'); }
+        }
+
+        async function deletePhoto(record, photoUrl, photoType, item) {
+            if (!confirm('確定要刪除這張照片？')) return;
+            const btn = item.querySelector('.photo-del-btn'); btn.disabled = true;
+            try {
+                const res = await fetch(API_URL, { method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'delete_photo', target_user_id: record.user_id, station_id: record.station_id, photo_url: photoUrl, photo_type: photoType }) });
+                const result = await res.json();
+                if (result.success) {
+                    if (photoType==='stamp') record.stamp_url = '';
+                    else if (photoType==='main') record.photo_url = '';
+                    else if (photoType==='extra') record.extra_photo_urls = (record.extra_photo_urls||'').split(',').filter(u=>u.trim()!==photoUrl.trim()).join(',');
+                    else if (photoType==='spot')  record.spot_photo_urls  = (record.spot_photo_urls ||'').split(',').filter(u=>u.trim()!==photoUrl.trim()).join(',');
+                    item.remove();
+                } else { alert(result.message||'刪除失敗'); btn.disabled = false; }
+            } catch(e) { alert('❌ 網路錯誤'); btn.disabled = false; }
+        }
+
+        loadAll();
+    </script>
+</body>
+</html>

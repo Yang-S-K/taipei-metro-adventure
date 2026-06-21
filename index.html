@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雙北捷運足跡冒險</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e30022">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/e30022/FFFFFF?text=Metro">
+    <style>
+        body { overflow: hidden; height: 100vh; }
+        /* 臨時補上進度條與選單的樣式 */
+        #top-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+            text-align: center;
+        }
+        .progress-container {
+            width: 100%;
+            background: #eee;
+            border-radius: 10px;
+            height: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        #progress-fill {
+            height: 100%;
+            background: #005edd;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        .nav-btn {
+            padding: 5px 15px;
+            border: none;
+            border-radius: 20px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        /* 🔧 修正 Leaflet 標籤重疊與阻擋點擊的問題 */
+        .station-label {
+            background-color: rgba(255, 255, 255, 0.85) !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+            font-weight: bold;
+            color: #333;
+            font-size: 0.8rem;
+            pointer-events: none !important;
+        }
+        /* 座標工具 */
+        #coord-display {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 5px 10px;
+            border-radius: 8px;
+            z-index: 1000;
+            pointer-events: none;
+            font-family: monospace;
+            display: none;
+        }
+        #coord-copied {
+            position: absolute;
+            bottom: 40px;
+            right: 10px;
+            background: #005edd;
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 5px 12px;
+            border-radius: 8px;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        /* 搜尋框 */
+        #search-box {
+            margin-top: 10px;
+            position: relative;
+        }
+        #search-input {
+            width: 100%;
+            padding: 8px 14px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+        #search-input:focus { border-color: #005edd; }
+        #search-results {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+            text-align: left;
+        }
+        .search-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: #f5f5f5; }
+        /* 路線篩選 */
+        #filter-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .filter-btn {
+            flex-shrink: 0;
+            border: none;
+            border-radius: 14px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+            color: white;
+        }
+        .filter-btn:active { transform: scale(0.95); }
+        .filter-btn-all { background: #333; }
+        .filter-btn.inactive { opacity: 0.3; }
+        /* F3-A - 景點清單 */
+        .spots-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+        .spot-item { background: #f8f9fa; border-radius: 8px; padding: 8px 10px; }
+        .spot-name { font-weight: bold; color: #333; font-size: 0.88rem; }
+        .spot-meta { font-size: 0.78rem; color: #666; margin-top: 2px; }
+        .spot-links { display: flex; gap: 6px; margin-top: 6px; }
+        .spot-map-btn { font-size: 0.72rem; padding: 3px 10px; border-radius: 12px; background: #4285f4; color: white; text-decoration: none; font-weight: bold; }
+        .spot-map-btn-apple { background: #555; }
+        .spot-item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
+        .spot-cat-badge { font-size: 0.62rem; padding: 2px 7px; border-radius: 10px; color: white; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+        .spot-cat-header { font-size: 0.82rem; font-weight: bold; color: #555; margin: 12px 0 6px; padding-bottom: 5px; border-bottom: 1px solid #e8e8e8; }
+        .spots-fallback { font-size: 0.85rem; color: #555; margin-top: 4px; }
+        .spots-empty { color: #aaa; }
+        .spots-expand-btn { font-size: 0.78rem; color: #005edd; background: none; border: none; cursor: pointer; padding: 6px 0 2px; display: block; }
+        /* 景點 bottom sheet modal */
+        #spots-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); z-index: 9998; display: flex; align-items: flex-end; justify-content: center; transition: opacity 0.25s; }
+        #spots-modal.spots-modal-hidden { opacity: 0; pointer-events: none; }
+        #spots-modal-sheet { background: white; border-radius: 16px 16px 0 0; padding: 20px 16px 32px; width: 100%; max-width: 480px; max-height: 75vh; overflow-y: auto; position: relative; }
+        #spots-modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 28px; cursor: pointer; color: #555; line-height: 1; }
+        #spots-modal-title { font-size: 1rem; font-weight: bold; margin-bottom: 12px; padding-right: 30px; }
+        /* F2 - 多照片展示 */
+        .photos-stamp-row { display: flex; gap: 10px; margin-top: 12px; align-items: flex-start; }
+        .photos-stamp-box { width: 95px; flex-shrink: 0; }
+        .photos-stamp-box h4, .photos-main-box h4 { font-size: 0.8rem; color: #555; margin-bottom: 4px; }
+        .photos-stamp-box img { width: 100%; height: 90px; object-fit: cover; border-radius: 8px; background: #eee; display: block; }
+        .photos-main-box { flex: 1; min-width: 0; }
+        .photos-main-img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; background: #eee; display: block; }
+        .gallery-expand-btn { font-size: 0.75rem; color: #005edd; background: none; border: none; cursor: pointer; padding: 4px 0; display: block; }
+        .gallery-extra-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 6px; }
+        .gallery-extra-item { flex-shrink: 0; width: 80px; text-align: center; }
+        .gallery-extra-item img { width: 80px; height: 70px; object-fit: cover; border-radius: 6px; background: #eee; display: block; }
+        .set-primary-btn { width: 100%; font-size: 0.65rem; background: #005edd; color: white; border: none; border-radius: 4px; padding: 2px 0; cursor: pointer; margin-top: 3px; }
+        .photos-spot-section { margin-top: 12px; }
+        .photos-spot-section h4 { font-size: 0.8rem; color: #555; margin-bottom: 4px; }
+        .gallery-spot-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+        .spot-photo-item { text-align: center; }
+        .spot-photo-item img { width: 80px; height: 70px; object-fit: cover; border-radius: 6px; background: #eee; display: block; }
+        .photo-del-btn { font-size: 0.65rem; background: none; border: none; color: #ff4d4f; cursor: pointer; padding: 2px 0; display: block; width: 100%; text-align: center; }
+        .supplement-btns { display: flex; gap: 8px; margin-top: 10px; }
+        .supplement-btns button { flex: 1; font-size: 0.78rem; padding: 6px 4px; background: #f0f0f0; border: 1px dashed #ccc; border-radius: 8px; cursor: pointer; }
+        /* 照片燈箱 */
+        #photo-lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.25s ease; }
+        #photo-lightbox.lb-hidden { opacity: 0; pointer-events: none; }
+        #lb-img { max-width: 92%; max-height: 80vh; border-radius: 10px; object-fit: contain; box-shadow: 0 5px 25px rgba(0,0,0,0.5); }
+        #lb-caption { color: #fff; margin-top: 14px; font-size: 1rem; font-weight: bold; text-align: center; }
+        #lb-close { position: absolute; top: 18px; right: 24px; color: #fff; font-size: 38px; cursor: pointer; font-weight: bold; line-height: 1; }
+        .gallery-clickable { cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div id="top-bar">
+            <div id="progress-text">捷運制霸進度: 0 / 0 (0%)</div>
+                <div id="progress-bar" class="progress-container">
+                    <div id="progress-fill"></div>
+                </div>
+            <div class="nav-buttons">
+                <button class="nav-btn" id="login-status-btn">🔑 登入</button>
+                <button class="nav-btn" onclick="location.href='stamps.html'">📖 集章冊</button>
+                <button class="nav-btn" onclick="location.href='timeline.html'">⏱️ 時間軸</button>
+            </div>
+            <div id="search-box">
+                <input type="text" id="search-input" placeholder="🔍 搜尋車站..." autocomplete="off">
+                <div id="search-results"></div>
+            </div>
+            <div id="filter-box">
+                <button id="filter-all-btn" class="filter-btn filter-btn-all">全部</button>
+            </div>
+        </div>
+
+        <div id="map"></div>
+
+        <div id="spots-modal" class="spots-modal-hidden">
+            <div id="spots-modal-sheet">
+                <button id="spots-modal-close">&times;</button>
+                <h3 id="spots-modal-title"></h3>
+                <div id="spots-modal-list"></div>
+            </div>
+        </div>
+
+        <div id="photo-lightbox" class="lb-hidden">
+            <span id="lb-close">&times;</span>
+            <img id="lb-img" src="" alt="放大照片">
+            <div id="lb-caption"></div>
+        </div>
+        <div id="coord-display">📍 lat, lng</div>
+        <div id="coord-copied">已複製！</div>
+
+        <div id="station-card" class="card-hidden">
+            <button id="close-btn">×</button>
+            <h2 id="card-title">車站名稱</h2>
+            <div id="card-line" style="margin-bottom: 10px;"></div>
+
+            <div class="card-content">
+                <h3>📍 推薦景點</h3>
+                <div id="card-spots"></div>
+                
+                <div id="photos-area"></div>
+            </div>
+                <div id="checkin-form" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                    <h3 style="font-size: 1rem; margin-bottom: 10px;">✅ 實地打卡解鎖</h3>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 0.8rem; color: #666; display:block;">📝 上傳紀念章（1張）</label>
+                        <input type="file" id="upload-stamp" accept="image/*" style="font-size: 0.8rem;">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 0.8rem; color: #666; display:block;">📸 上傳合照（至少1張，可多選，第一張為主要）</label>
+                        <input type="file" id="upload-photo" accept="image/*" multiple style="font-size: 0.8rem;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.8rem; color: #666; display:block;">🌟 景點照（選填，可多選）</label>
+                        <input type="file" id="upload-spot" accept="image/*" multiple style="font-size: 0.8rem;">
+                    </div>
+                    <button id="submit-checkin-btn" class="nav-btn" style="width: 100%; background: #005edd; color: white;">送出解鎖</button>
+                    <p id="upload-msg" style="font-size: 0.85rem; text-align: center; margin-top: 8px;"></p>
+                </div>
+
+            <div id="supplement-area" class="hidden" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                <div class="supplement-btns">
+                    <button id="add-extra-btn">+ 補傳合照</button>
+                    <button id="add-spot-btn">+ 補傳景點照</button>
+                </div>
+                <div id="supplement-form" class="hidden" style="margin-top: 8px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                    <input type="file" id="supplement-file" accept="image/*" multiple style="font-size: 0.8rem; display: block; margin-bottom: 6px;">
+                    <button id="supplement-submit-btn" class="nav-btn" style="width: 100%; background: #005edd; color: white; font-size: 0.85rem;">確認上傳</button>
+                    <p id="supplement-msg" style="font-size: 0.82rem; text-align: center; margin-top: 6px;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

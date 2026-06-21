@@ -138,6 +138,7 @@ GET {API_URL}?user_id={user_id}
 | `set_permissions` | 設定使用者權限 | target_user_id, permissions（逗號分隔字串） → `{ success, permissions }` |
 | `delete_user` | 刪除使用者 + 所有打卡紀錄 | target_user_id → `{ success }` |
 | `update_profile` | 更改帳號名稱或密碼 | user_id, new_username（選填）, new_password（選填）→ `{ success, username }` |
+| `update_note` | 更新打卡備註 | user_id, station_id, note → `{ success, note }` |
 
 ---
 
@@ -312,19 +313,12 @@ POST 必須用 `Content-Type: text/plain;charset=utf-8`。doPost 最底部有 fa
 
 ---
 
-### 打卡備註（note）
-**目標**：打卡時可附加短文字（選填），顯示在車站卡片和 timeline。
-
-**Sheets 異動**：User_Progress 加 H 欄 `note`（doGet 以 header 自動帶出，不影響現有欄位）
-
-**GAS 異動**：
-- `checkin` action：appendRow 最後多傳一個 `params.note || ''`
-- 新增 `update_note` action：params `user_id`, `station_id`, `note` → 更新 User_Progress H 欄
-
-**前端異動**：
-- `index.html`：打卡表單加 textarea（選填），已解鎖車站卡片顯示備註 + 編輯按鈕（呼叫 update_note）
-- `timeline.html`：每筆記錄顯示備註文字（有備註才顯示）
-- `app.js`：`initMetroAdventure` 合併 `station.note = userProg.note`
+### 打卡備註（note）✅（已完成）
+**Sheets**：User_Progress H 欄加 `note` header（使用者需手動加）  
+**GAS**：`checkin` appendRow 多一欄 note；`update_note` action 更新 H 欄  
+**app.js**：note 合併進 station 物件；renderPhotosArea 底部備註區（有備註顯示文字+✏️，沒有顯示「加備註」）  
+**index.html**：打卡表單加 💬 備註 textarea  
+**timeline.html**：每筆記錄顯示 💬 備註（有才顯示）
 
 ---
 

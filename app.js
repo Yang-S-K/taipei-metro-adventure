@@ -135,6 +135,7 @@ async function initMetroAdventure() {
                     station.photo_img_url    = userProg.photo_url;
                     station.extra_photo_urls = userProg.extra_photo_urls ? userProg.extra_photo_urls.split(',').filter(u => u.trim()) : [];
                     station.spot_photo_urls  = userProg.spot_photo_urls  ? userProg.spot_photo_urls.split(',').filter(u => u.trim())  : [];
+                    station.note             = userProg.note || '';
                 }
             }
         });
@@ -209,7 +210,7 @@ function renderStationMarkers(stations) {
         markerMap[station.station_id] = marker;
         
         marker.on('click', () => {
-            ['upload-stamp','upload-photo','upload-spot','supplement-file'].forEach(id => {
+            ['upload-stamp','upload-photo','upload-spot','supplement-file','checkin-note'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -264,6 +265,7 @@ function renderStationMarkers(stations) {
                             spotPhotosBase64.push(await compressAndGetBase64(f));
                         }
 
+                        const noteText = (document.getElementById('checkin-note') || {value:''}).value.trim();
                         const res = await fetch(API_URL, {
                             method: 'POST',
                             redirect: 'follow',
@@ -277,7 +279,8 @@ function renderStationMarkers(stations) {
                                 photo_base64: photoBase64,
                                 photo_mime: 'image/jpeg',
                                 extra_photos_base64: extraPhotosBase64,
-                                spot_photos_base64: spotPhotosBase64
+                                spot_photos_base64: spotPhotosBase64,
+                                note: noteText
                             })
                         });
                         const result = await res.json();
@@ -288,6 +291,7 @@ function renderStationMarkers(stations) {
                             station.photo_img_url    = result.photo_url;
                             station.extra_photo_urls = result.extra_photo_urls ? result.extra_photo_urls.split(',').filter(u => u.trim()) : [];
                             station.spot_photo_urls  = result.spot_photo_urls  ? result.spot_photo_urls.split(',').filter(u => u.trim())  : [];
+                            station.note             = result.note || '';
 
                             const firstColor = station.line_color.split(',')[0].trim();
                             if (markerMap[station.station_id]) markerMap[station.station_id].setStyle({ fillColor: firstColor });
@@ -460,6 +464,22 @@ function renderPhotosArea(station) {
     const photoUrl = fixDriveImage(station.photo_img_url) || '';
     const photoHi  = photoUrl.replace('sz=w800', 'sz=w1200');
 
+    const noteEsc  = (station.note || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const noteHtml = `
+        <div class="note-section">
+            ${station.note
+                ? `<div class="note-display"><span class="note-text">📝 ${noteEsc}</span><button class="note-edit-btn">✏️ 編輯</button></div>`
+                : `<button class="note-add-btn">📝 加備註</button>`}
+            <div class="note-edit-area hidden">
+                <textarea class="note-textarea" rows="2" placeholder="記下這次的感想...">${noteEsc}</textarea>
+                <div style="display:flex;gap:6px;margin-top:6px;">
+                    <button class="note-save-btn">儲存</button>
+                    <button class="note-cancel-btn">取消</button>
+                </div>
+                <p class="note-msg"></p>
+            </div>
+        </div>`;
+
     area.innerHTML = `
         <div class="photos-stamp-row">
             <div class="photos-stamp-box">
@@ -474,7 +494,8 @@ function renderPhotosArea(station) {
                 ${extrasHtml}
             </div>
         </div>
-        ${spotsHtml}`;
+        ${spotsHtml}
+        ${noteHtml}`;
 
     const expandBtn = area.querySelector('.gallery-expand-btn');
     if (expandBtn) {
@@ -486,6 +507,18 @@ function renderPhotosArea(station) {
     area.querySelectorAll('.photo-del-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteMyPhoto(station, btn.dataset.url, btn.dataset.type));
     });
+
+    const noteSection  = area.querySelector('.note-section');
+    const noteEditArea = noteSection.querySelector('.note-edit-area');
+    const noteTextarea = noteSection.querySelector('.note-textarea');
+    const noteMsg      = noteSection.querySelector('.note-msg');
+    const openEdit = () => { noteTextarea.value = station.note || ''; noteEditArea.classList.remove('hidden'); noteTextarea.focus(); };
+    const addBtn  = noteSection.querySelector('.note-add-btn');
+    const editBtn = noteSection.querySelector('.note-edit-btn');
+    if (addBtn)  addBtn.addEventListener('click',  openEdit);
+    if (editBtn) editBtn.addEventListener('click', openEdit);
+    noteSection.querySelector('.note-cancel-btn').addEventListener('click', () => noteEditArea.classList.add('hidden'));
+    noteSection.querySelector('.note-save-btn').addEventListener('click',   () => updateNote(station, noteTextarea.value.trim(), noteMsg));
 }
 
 async function deleteMyPhoto(station, photoUrl, photoType) {
@@ -516,6 +549,27 @@ async function deleteMyPhoto(station, photoUrl, photoType) {
     } catch(e) {
         alert('❌ 網路錯誤');
         console.error(e);
+    }
+}
+
+async function updateNote(station, note, noteMsg) {
+    noteMsg.style.color = '#005edd'; noteMsg.textContent = '⏳ 儲存中...';
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'update_note', user_id: currentUserId, station_id: station.station_id, note })
+        });
+        const result = await res.json();
+        if (result.success) {
+            station.note = note;
+            renderPhotosArea(station);
+        } else {
+            noteMsg.style.color = 'red'; noteMsg.textContent = result.message || '儲存失敗';
+        }
+    } catch(e) {
+        noteMsg.style.color = 'red'; noteMsg.textContent = '網路錯誤';
     }
 }
 

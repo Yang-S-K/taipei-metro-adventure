@@ -191,6 +191,17 @@
         .spot-photo-item { text-align: center; }
         .spot-photo-item img { width: 80px; height: 70px; object-fit: cover; border-radius: 6px; background: #eee; display: block; }
         .photo-del-btn { font-size: 0.65rem; background: none; border: none; color: #ff4d4f; cursor: pointer; padding: 2px 0; display: block; width: 100%; text-align: center; }
+        /* 打卡備註 */
+        .note-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+        .note-display { display: flex; align-items: flex-start; gap: 8px; }
+        .note-text { font-size: 0.83rem; color: #555; line-height: 1.5; flex: 1; white-space: pre-wrap; }
+        .note-edit-btn, .note-add-btn { font-size: 0.75rem; color: #005edd; background: none; border: none; cursor: pointer; white-space: nowrap; padding: 0; flex-shrink: 0; }
+        .note-add-btn { display: block; padding: 2px 0; }
+        .note-textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.85rem; box-sizing: border-box; resize: none; font-family: inherit; }
+        .note-textarea:focus { outline: none; border-color: #005edd; }
+        .note-save-btn { flex: 1; padding: 6px; background: #005edd; color: white; border: none; border-radius: 16px; cursor: pointer; font-size: 0.82rem; font-weight: bold; }
+        .note-cancel-btn { flex: 1; padding: 6px; background: #eee; color: #333; border: none; border-radius: 16px; cursor: pointer; font-size: 0.82rem; }
+        .note-msg { font-size: 0.8rem; margin: 4px 0 0; min-height: 1em; }
         .supplement-btns { display: flex; gap: 8px; margin-top: 10px; }
         .supplement-btns button { flex: 1; font-size: 0.78rem; padding: 6px 4px; background: #f0f0f0; border: 1px dashed #ccc; border-radius: 8px; cursor: pointer; }
         /* 照片燈箱 */
@@ -265,6 +276,10 @@
                     <div style="margin-bottom: 12px;">
                         <label style="font-size: 0.8rem; color: #666; display:block;">🌟 景點照（選填，可多選）</label>
                         <input type="file" id="upload-spot" accept="image/*" multiple style="font-size: 0.8rem;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.8rem; color: #666; display:block;">💬 備註（選填）</label>
+                        <textarea id="checkin-note" rows="2" placeholder="記下這次的感想..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;box-sizing:border-box;resize:none;font-family:inherit;"></textarea>
                     </div>
                     <button id="submit-checkin-btn" class="nav-btn" style="width: 100%; background: #005edd; color: white;">送出解鎖</button>
                     <p id="upload-msg" style="font-size: 0.85rem; text-align: center; margin-top: 8px;"></p>

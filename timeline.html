@@ -210,6 +210,7 @@
                     const item = document.createElement('div');
                     item.className = 'timeline-item';
 
+                    const noteText = (record.note || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                     item.innerHTML = `
                         <div class="timeline-dot" style="background-color: ${firstColor};"></div>
                         <div class="timeline-content" style="position: relative; padding-right: 95px;">
@@ -221,7 +222,7 @@
                                 ${stationInfo.station_name}
                                 ${lineBadgesHtml}
                             </div>
-                            <p style="font-size: 0.9rem; color: #555; margin: 0; line-height: 1.4;">${stationInfo.spots_info || "探索了這個車站！"}</p>
+                            ${noteText ? `<p style="font-size:0.85rem;color:#555;margin:4px 0 0;line-height:1.5;white-space:pre-wrap;">💬 ${noteText}</p>` : ''}
 
                             <img id="photo-${record.station_id}" class="timeline-photo clickable-img" src="${photoUrl}" alt="${stationInfo.station_name}合照" style="margin-top: 12px;">
                         </div>

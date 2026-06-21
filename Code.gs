@@ -177,14 +177,15 @@ function doPost(e) {
         }).join(',');
       }
 
-      progressSheet.appendRow([params.user_id, params.station_id, stampUrl, photoUrl, new Date(), extraUrls, spotUrls]);
+      progressSheet.appendRow([params.user_id, params.station_id, stampUrl, photoUrl, new Date(), extraUrls, spotUrls, params.note || '']);
 
       return ContentService.createTextOutput(JSON.stringify({
         success: true,
         stamp_url: stampUrl,
         photo_url: photoUrl,
         extra_photo_urls: extraUrls,
-        spot_photo_urls: spotUrls
+        spot_photo_urls: spotUrls,
+        note: params.note || ''
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -315,6 +316,22 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
+    if (params.action === 'update_note') {
+      var rows = progressSheet.getDataRange().getValues();
+      var headers = rows[0];
+      var noteCol = headers.indexOf('note');
+      if (noteCol < 0) return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'note 欄位不存在，請先在 User_Progress 表 H 欄加 note 標頭' })).setMimeType(ContentService.MimeType.JSON);
+      var userCol    = headers.indexOf('user_id');
+      var stationCol = headers.indexOf('station_id');
+      for (var i = 1; i < rows.length; i++) {
+        if (String(rows[i][userCol]) === String(params.user_id) && String(rows[i][stationCol]) === String(params.station_id)) {
+          progressSheet.getRange(i + 1, noteCol + 1).setValue(params.note || '');
+          return ContentService.createTextOutput(JSON.stringify({ success: true, note: params.note || '' })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ success: false, message: '找不到紀錄' })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (params.action === 'update_profile') {
       var usersSheet = ss.getSheetByName('Users');
       var usersData = usersSheet.getDataRange().getValues();

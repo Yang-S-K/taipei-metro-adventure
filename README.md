@@ -394,6 +394,23 @@ POST 必須用 `Content-Type: text/plain;charset=utf-8`。doPost 最底部有 fa
 
 ---
 
+## 待開發功能（暫緩）
+
+### Google 帳號綁定登入
+
+**目標**：用 Google 帳號登入，不需自訂帳密。
+
+**方案**：Google Identity Services（One Tap）
+1. Google Cloud Console 建 OAuth client ID
+2. `login.html` 加 Google 登入按鈕，拿到 JWT credential
+3. GAS `login_google` action：用 `UrlFetchApp.fetch` 呼叫 `https://oauth2.googleapis.com/tokeninfo?id_token=…` 驗證 token，取出 `sub`（唯一 Google ID）當 user_id、`name` 當 username
+4. 首次登入自動建帳號（Users 表 appendRow），之後直接回傳 user 物件
+5. 現有帳密登入保留（向下相容），兩種方式並存
+
+**暫緩原因**：目前帳密系統對內部小群體夠用，Google 登入工作量較大。
+
+---
+
 ## 已完成功能清單
 
 | 功能 | 說明 |
